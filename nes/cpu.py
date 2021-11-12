@@ -82,22 +82,112 @@ class CPU:
     def connect_bus(self, bus: Bus) -> None:
         self._bus: Bus = bus
     
-    def reset(self):
-        """
+    def reset(self) -> None:
+        """ 
         Forces CPU into known state.
-        """
+        """     
+        # Get address to set program counter to:
+        self._addr_abs = 0xFFFC
+        l = self._read(self._addr_abs + 0)
+        h = self._read(self._addr_abs + 1)
+
+        # Set it:
+        self.pc_reg = (h << 8) | l
+
+        # Reset internal registers:
+        self.a_reg = 0x00
+        self.x_reg = 0x00
+        self.y_reg = 0x00
+        self.sp_reg = 0xFD
+        self.status_reg = 0x00 | CPU.FLAGS.U
+
+        # Clear helper variables:
+        self._fetched = 0x00
+        self._addr_abs = 0x0000
+        self._addr_rel = 0x0000
         
-    def interrupt_request(self):
+        # Reset takes time:
+        self._cycles = 8
+        
+    def interrupt_request(self) -> None:
         """
         Executes an instruction at a specific location.
         """
+        if self._get_flag(CPU.FLAGS.I) == 0:
+            # Push the program counter to the stack:
+            self._write(0x0100 + self.sp_reg, (self.pc_reg >> 8) & 0x00FF)
+            self.sp_reg -= 1
+            self._write(0x0100 + self.sp_reg, self.pc_reg & 0x00FF)
+            self.sp_reg -= 1
+
+            # Then push the status register to the stack:
+            self._set_flag(CPU.FLAGS.B, 0)
+            self._set_flag(CPU.FLAGS.U, 1)
+            self._set_flag(CPU.FLAGS.I, 1)
+            self._write(0x0100 + self.sp_reg, self.status_reg)
+            self.sp_reg -= 1
+
+            # Read new program counter location from fixed address:
+            self._addr_abs = 0xFFFE
+            l = self._read(self._addr_abs + 0)
+            h = self._read(self._addr_abs + 1)
+            self.pc_reg = (h << 8) | l
+
+            # IRQs take time:
+            self._cycles = 7
         
-    def nonmaskable_interrupt_request(self):
+    def nonmaskable_interrupt_request(self) -> None:
         """
         Similar to interrupt_request, but cannot be disabled.
         """
+        # Push the program counter to the stack:
+        self._write(0x0100 + self.sp_reg, (self.pc_reg >> 8) & 0x00FF)
+        self.sp_reg -= 1
+        self._write(0x0100 + self.sp_reg, self.pc_reg & 0x00FF)
+        self.sp_reg -= 1
+
+        # Then push the status register to the stack:
+        self._set_flag(CPU.FLAGS.B, 0)
+        self._set_flag(CPU.FLAGS.U, 1)
+        self._set_flag(CPU.FLAGS.I, 1)
+        self._write(0x0100 + self.sp_reg, self.status_reg)
+        self.sp_reg -= 1
+
+        # Read new program counter location from fixed address:
+        self._addr_abs = 0xFFFA
+        l = self._read(self._addr_abs + 0)
+        h = self._read(self._addr_abs + 1)
+        self.pc_reg = (h << 8) | l
+
+        # IRQs take time:
+        self._cycles = 8
         
-    def clock(self):
+    def clock(self) -> None:
         """
         Perform one clock cycle's worth of update.
         """
+        if self._cycles == 0:
+            # Read next instruction byte:
+            self._opcode = self._read(self.pc_reg)
+            
+            # Set the unused status flag bit to 1:
+            self._set_flag(CPU.FLAGS.U, 1)
+
+            # Increment program counter:
+            self.pc_reg += 1
+            
+            # Fetch intermediate data and perform the operation:
+            additional_cycle1 = self._lookup[self._opcode].address_mode()
+            additional_cycle2 = self._lookup[self._opcode].operate()
+
+            # Set the required number of cycles:
+            self._cycles = self._lookup[self._opcode].cycles + (additional_cycle1 & additional_cycle2)
+
+            # Set the unused status flag bit to 1:
+            self._set_flag(CPU.FLAGS.U, 1)
+
+        # Increment global clock count:
+        self._clock_count += 1
+
+        # Decrement the number of cycles remaining for this instruction:
+        self._cycles -= 1
