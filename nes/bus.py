@@ -9,7 +9,7 @@ class Bus:
     NES - System Bus.
     """
     
-    def __init__() -> None:
+    def __init__(self) -> None:
         # Devices on the bus:
         self.cpu : CPU = CPU()
         self.ram : List[np.uint8] = [0x00] * 1024 * 64 # fake RAM for now
