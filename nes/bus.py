@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-from .cpu import CPU
+
 
 class Bus:
     """
@@ -10,6 +10,8 @@ class Bus:
     """
     
     def __init__(self) -> None:
+        from .cpu import CPU
+        
         # Devices on the bus:
         self.cpu : CPU = CPU()
         self.ram : List[np.uint8] = [0x00] * 1024 * 64 # fake RAM for now
@@ -17,11 +19,11 @@ class Bus:
         # Connect CPU to the bus:
         self.cpu.connect_bus(self)
     
-    def write(self, address: np.unit16, data: np.unit8) -> None:
+    def write(self, address: np.uint16, data: np.uint8) -> None:
         if 0x0000 <= address <= 0xFFFF:
             self.ram[address] = data
         
-    def read(self, address: np.unit16, read_only: bool = False) -> np.uint8:
+    def read(self, address: np.uint16, read_only: bool = False) -> np.uint8:
         if 0x0000 <= address <= 0xFFFF:
             return self.ram[address]
         return 0x00
