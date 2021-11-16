@@ -1,17 +1,30 @@
 import pytest
-from nes.cpu import CPU
+from nes.bus import Bus
 
 @pytest.fixture
-def cpu():
-    return CPU()
+def bus():
+    return Bus()
 
-def test_cpu_reset(cpu):
+def test_cpu_reset(bus):
     """
-    Tests CPU registers just after power and changes during reset, and that RAM isn't changed during reset.
+    Tests CPU registers just after power and changes during reset,
+    and that RAM isn't changed during reset.
     """
-    assert cpu.a_reg == 0x00
-    assert cpu.x_reg == 0x00
-    assert cpu.y_reg == 0x00
-    assert cpu.sp_reg == 0x00
-    assert cpu.pc_reg == 0x0000
-    assert cpu.status_reg == 0x00
+    # After power up:
+    assert bus.cpu.a_reg == 0x00
+    assert bus.cpu.x_reg == 0x00
+    assert bus.cpu.y_reg == 0x00
+    assert bus.cpu.sp_reg == 0xFD
+    assert bus.cpu.status_reg == 0x00 | bus.cpu.FLAGS.U.value | bus.cpu.FLAGS.I.value
+    
+    ram_cp = bus.ram.copy()
+    bus.cpu.reset()
+    
+    # After reset:
+    assert bus.ram == ram_cp
+    assert bus.cpu.a_reg == 0x00
+    assert bus.cpu.x_reg == 0x00
+    assert bus.cpu.y_reg == 0x00
+    assert bus.cpu.sp_reg == 0xFD
+    assert bus.cpu.pc_reg == (bus.ram[0xFFFD] << 8) | bus.ram[0xFFFC]
+    assert bus.cpu.status_reg == 0x00 | bus.cpu.FLAGS.U.value | bus.cpu.FLAGS.I.value

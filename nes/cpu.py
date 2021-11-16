@@ -39,9 +39,9 @@ class CPU:
         self.a_reg      : np.uint8  = 0x00
         self.x_reg      : np.uint8  = 0x00
         self.y_reg      : np.uint8  = 0x00   
-        self.sp_reg     : np.uint8  = 0x00
+        self.sp_reg     : np.uint8  = 0xFD
         self.pc_reg     : np.uint16 = 0x0000
-        self.status_reg : np.uint8  = 0x00
+        self.status_reg : np.uint8  = 0x00 | CPU.FLAGS.U.value | CPU.FLAGS.I.value
         
         # Helper variables:
         self._fetched     : np.uint8  = 0x00      # Working input value
@@ -58,16 +58,16 @@ class CPU:
         """
         Returns the state of a specific bit of the status register.
         """
-        return 1 if (self.status_reg & flag) > 0 else 0
+        return 1 if (self.status_reg & flag.value) > 0 else 0
     
     def _set_flag(self, flag: CPU.FLAGS, value: bool) -> None:
         """
         Sets or resets a specific bit of the status register.
         """
         if value:
-            self.status_reg |= flag
+            self.status_reg |= flag.value
         else:
-            self.status_reg &= ~flag
+            self.status_reg &= ~flag.value
 
     def _read(self, address: np.uint16) -> np.uint8:
         """
@@ -88,12 +88,10 @@ class CPU:
         """ 
         Forces CPU into known state.
         """     
-        # Get address to set program counter to:
+        # Read new program counter location from fixed address:
         self._addr_abs = 0xFFFC
         l = self._read(self._addr_abs + 0)
         h = self._read(self._addr_abs + 1)
-
-        # Set it:
         self.pc_reg = (h << 8) | l
 
         # Reset internal registers:
@@ -101,7 +99,7 @@ class CPU:
         self.x_reg = 0x00
         self.y_reg = 0x00
         self.sp_reg = 0xFD
-        self.status_reg = 0x00 | CPU.FLAGS.U
+        self.status_reg = 0x00 | CPU.FLAGS.U.value | CPU.FLAGS.I.value
 
         # Clear helper variables:
         self._fetched = 0x00
