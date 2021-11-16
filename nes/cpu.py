@@ -120,10 +120,12 @@ class CPU:
             self._write(0x0100 + self.sp_reg, self.pc_reg & 0x00FF)
             self.sp_reg -= 1
 
-            # Then push the status register to the stack:
-            self._set_flag(CPU.FLAGS.B, 0)
-            self._set_flag(CPU.FLAGS.U, 1)
-            self._set_flag(CPU.FLAGS.I, 1)
+            # Set status register flags:
+            self._set_flag(CPU.FLAGS.B, False)
+            self._set_flag(CPU.FLAGS.U, True)
+            self._set_flag(CPU.FLAGS.I, True)
+            
+            # Push the status register to the stack:
             self._write(0x0100 + self.sp_reg, self.status_reg)
             self.sp_reg -= 1
 
@@ -146,10 +148,12 @@ class CPU:
         self._write(0x0100 + self.sp_reg, self.pc_reg & 0x00FF)
         self.sp_reg -= 1
 
-        # Then push the status register to the stack:
-        self._set_flag(CPU.FLAGS.B, 0)
-        self._set_flag(CPU.FLAGS.U, 1)
-        self._set_flag(CPU.FLAGS.I, 1)
+        # Set status register flags:
+        self._set_flag(CPU.FLAGS.B, False)
+        self._set_flag(CPU.FLAGS.U, True)
+        self._set_flag(CPU.FLAGS.I, True)
+        
+        # Push the status register to the stack:
         self._write(0x0100 + self.sp_reg, self.status_reg)
         self.sp_reg -= 1
 
