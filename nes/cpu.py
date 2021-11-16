@@ -195,3 +195,52 @@ class CPU:
 
         # Decrement the number of cycles remaining for this instruction:
         self._cycles -= 1
+        
+    def _IMP(self) -> np.uint8:
+        """
+        Address Mode: Implied
+        There is no additional data required for this instruction.
+        """
+        # Target the accumulator for instructions like PHA.
+        self._fetched = self.a_reg
+        return 0
+    
+    def _IMM(self) -> np.uint8:
+        """
+        Address Mode: Immediate
+        The instruction expects the next byte to be used as a value.
+        """  
+        self._addr_abs = self.pc_reg
+        self.pc_reg += 1
+        return 0
+    
+    def _ZP0(self) -> np.uint8:
+        """
+        Address Mode: Zero Page
+        Allows to absolutely address a location in first 0xFF bytes of address range.
+        """
+        self._addr_abs = self._read(self.pc_reg)
+        self.pc_reg += 1
+        self._addr_abs &= 0x00FF
+        return 0
+    
+    def _ZPX(self) -> np.uint8:
+        """
+        Address Mode: Zero Page with X offset
+        Same as ZP0, but the contents of the X register is added to the given byte address.
+        """
+        self._addr_abs = self._read(self.pc_reg) + self.x_reg
+        self.pc_reg += 1
+        self._addr_abs &= 0x00FF
+        return 0
+    
+    def _ZPY(self) -> np.uint8:
+        """
+        Address Mode: Zero Page with Y offset
+        Same as ZPX, but uses Y register to offset.
+        """
+        self._addr_abs = self._read(self.pc_reg) + self.y_reg
+        self.pc_reg += 1
+        self._addr_abs &= 0x00FF
+        return 0
+    
