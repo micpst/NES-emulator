@@ -244,3 +244,113 @@ class CPU:
         self._addr_abs &= 0x00FF
         return 0
     
+    def _REL(self) -> np.uint8:
+        """
+        Address Mode: Relative
+        The address must reside within -128 and 127 of the branch instruction.
+        """
+        self._addr_rel = self._read(self.pc_reg)
+        self.pc_reg += 1
+        if self._addr_rel & 0x80:
+            self._addr_rel |= 0xFF0
+        return 0
+
+    def _ABS(self) -> np.uint8:
+        """
+        Address Mode: Absolute
+        A full 16-bit address is loaded and used.
+        """
+        l = self._read(self.pc_reg)
+        self.pc_reg += 1
+        h = self._read(self.pc_reg)
+        self.pc_reg += 1
+        self._addr_abs = (h << 8) | l
+        return 0
+
+    def _ABX(self) -> np.uint8:
+        """
+        Address Mode: Absolute with X offset
+        A full 16-bit address is loaded and used.
+        """
+        l = self._read(self.pc_reg)
+        self.pc_reg += 1
+        h = self._read(self.pc_reg)
+        self.pc_reg += 1
+
+        self._addr_abs = (h << 8) | l
+        self._addr_abs += self.x_reg
+
+        if (self._addr_abs & 0xFF00) != (h << 8):
+            return 1
+        return 0
+
+    def _ABY(self) -> np.uint8:
+        """
+        Address Mode: Absolute with Y offset
+        A full 16-bit address is loaded and used.
+        """
+        l = self._read(self.pc_reg)
+        self.pc_reg += 1
+        h = self._read(self.pc_reg)
+        self.pc_reg += 1
+
+        self._addr_abs = (h << 8) | l
+        self._addr_abs += self.y_reg
+
+        if (self._addr_abs & 0xFF00) != (h << 8):
+            return 1
+        return 0
+
+    def _IND(self) -> np.uint8:
+        """
+        Address mode: Indirect
+        The supplied 16-bit address is read to get the actual 16-bit address.
+        """
+        l = self._read(self.pc_reg)
+        self.pc_reg += 1
+        h = self._read(self.pc_reg)
+        self.pc_reg += 1
+        ptr = (h << 8) | l
+
+        # Simulate page boundary harware bug:
+        if l == 0x00FF: 
+            self._addr_abs = (self._read(ptr & 0xFF00) << 8) | self._read(ptr)
+        # Behave normally:
+        else:
+            self._addr_abs = (self._read(ptr + 1) << 8) | self._read(ptr)
+
+        return 0
+
+    def _IZX(self) -> np.uint8:
+        """
+        Address mode: Indirect X
+        The suplied 8-bit address is offset by X register to index a location in page 0x00.
+        The actual 16-bit address is read from this location.
+        """
+        t = self._read(self.pc_reg)
+        self.pc_reg += 1
+
+        l = self._read((t + self.x_reg) & 0x00FF)
+        h = self._read((t + self.x_reg + 1) & 0x00FF)
+        self._addr_abs = (h << 8) | l
+
+        return 0
+
+    def _IZY(self) -> np.uint8:
+        """
+        Address mode: Indirect Y
+        The supplied 8-bit  address indexes a location in page 0x00. Form here actual 16-bit
+        address is read and the contents of Y register is added to it to offset it.
+        """
+        t = self._read(self.pc_reg)
+        self.pc_reg += 1
+
+        l = self._read(t & 0x00FF)
+        h = self._read((t + 1) & 0x00FF)
+
+        self._addr_abs = (h << 8) | l
+        self._addr_abs += self.y_reg
+
+        if (self._addr_abs & 0xFF00) != (h << 8):
+            return 1
+        return 0
