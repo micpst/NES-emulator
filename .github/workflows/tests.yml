@@ -22,3 +22,5 @@ jobs:
       run: pip install -e '.[testing]'
     - name: Run Pytest
       run: python -m pytest -s -v
+    - name: Run Mypy
+      run: mypy nes
