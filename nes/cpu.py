@@ -52,7 +52,24 @@ class CPU:
         self._cycles: int = 0        # Instruction remaining cycles
         self._clock_count: int = 0   # Global accumulation of the number of clocks
         
-        self._lookup: List[CPU.INSTRUCTION] = []
+        self._lookup: List[CPU.INSTRUCTION] = [
+            CPU.INSTRUCTION("BRK", self._BRK, self._IMM, 7), CPU.INSTRUCTION("ORA", self._ORA, self._IZX, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("???", self._NOP, self._IMP, 3), CPU.INSTRUCTION("ORA", self._ORA, self._ZP0, 3), CPU.INSTRUCTION("ASL", self._ASL, self._ZP0, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5), CPU.INSTRUCTION("PHP", self._PHP, self._IMP, 3), CPU.INSTRUCTION("ORA", self._ORA, self._IMM, 2), CPU.INSTRUCTION("ASL", self._ASL, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("ORA", self._ORA, self._ABS, 4), CPU.INSTRUCTION("ASL", self._ASL, self._ABS, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6),
+            CPU.INSTRUCTION("BPL", self._BPL, self._REL, 2), CPU.INSTRUCTION("ORA", self._ORA, self._IZY, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("ORA", self._ORA, self._ZPX, 4), CPU.INSTRUCTION("ASL", self._ASL, self._ZPX, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6), CPU.INSTRUCTION("CLC", self._CLC, self._IMP, 2), CPU.INSTRUCTION("ORA", self._ORA, self._ABY, 4), CPU.INSTRUCTION("???", self._NOP, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("ORA", self._ORA, self._ABX, 4), CPU.INSTRUCTION("ASL", self._ASL, self._ABX, 7), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7),
+            CPU.INSTRUCTION("JSR", self._JSR, self._ABS, 6), CPU.INSTRUCTION("AND", self._AND, self._IZX, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("BIT", self._BIT, self._ZP0, 3), CPU.INSTRUCTION("AND", self._AND, self._ZP0, 3), CPU.INSTRUCTION("ROL", self._ROL, self._ZP0, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5), CPU.INSTRUCTION("PLP", self._PLP, self._IMP, 4), CPU.INSTRUCTION("AND", self._AND, self._IMM, 2), CPU.INSTRUCTION("ROL", self._ROL, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("BIT", self._BIT, self._ABS, 4), CPU.INSTRUCTION("AND", self._AND, self._ABS, 4), CPU.INSTRUCTION("ROL", self._ROL, self._ABS, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6),
+            CPU.INSTRUCTION("BMI", self._BMI, self._REL, 2), CPU.INSTRUCTION("AND", self._AND, self._IZY, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("AND", self._AND, self._ZPX, 4), CPU.INSTRUCTION("ROL", self._ROL, self._ZPX, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6), CPU.INSTRUCTION("SEC", self._SEC, self._IMP, 2), CPU.INSTRUCTION("AND", self._AND, self._ABY, 4), CPU.INSTRUCTION("???", self._NOP, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("AND", self._AND, self._ABX, 4), CPU.INSTRUCTION("ROL", self._ROL, self._ABX, 7), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7),
+            CPU.INSTRUCTION("RTI", self._RTI, self._IMP, 6), CPU.INSTRUCTION("EOR", self._EOR, self._IZX, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("???", self._NOP, self._IMP, 3), CPU.INSTRUCTION("EOR", self._EOR, self._ZP0, 3), CPU.INSTRUCTION("LSR", self._LSR, self._ZP0, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5), CPU.INSTRUCTION("PHA", self._PHA, self._IMP, 3), CPU.INSTRUCTION("EOR", self._EOR, self._IMM, 2), CPU.INSTRUCTION("LSR", self._LSR, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("JMP", self._JMP, self._ABS, 3), CPU.INSTRUCTION("EOR", self._EOR, self._ABS, 4), CPU.INSTRUCTION("LSR", self._LSR, self._ABS, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6),
+            CPU.INSTRUCTION("BVC", self._BVC, self._REL, 2), CPU.INSTRUCTION("EOR", self._EOR, self._IZY, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("EOR", self._EOR, self._ZPX, 4), CPU.INSTRUCTION("LSR", self._LSR, self._ZPX, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6), CPU.INSTRUCTION("CLI", self._CLI, self._IMP, 2), CPU.INSTRUCTION("EOR", self._EOR, self._ABY, 4), CPU.INSTRUCTION("???", self._NOP, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("EOR", self._EOR, self._ABX, 4), CPU.INSTRUCTION("LSR", self._LSR, self._ABX, 7), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7),
+            CPU.INSTRUCTION("RTS", self._RTS, self._IMP, 6), CPU.INSTRUCTION("ADC", self._ADC, self._IZX, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("???", self._NOP, self._IMP, 3), CPU.INSTRUCTION("ADC", self._ADC, self._ZP0, 3), CPU.INSTRUCTION("ROR", self._ROR, self._ZP0, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5), CPU.INSTRUCTION("PLA", self._PLA, self._IMP, 4), CPU.INSTRUCTION("ADC", self._ADC, self._IMM, 2), CPU.INSTRUCTION("ROR", self._ROR, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("JMP", self._JMP, self._IND, 5), CPU.INSTRUCTION("ADC", self._ADC, self._ABS, 4), CPU.INSTRUCTION("ROR", self._ROR, self._ABS, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6),
+            CPU.INSTRUCTION("BVS", self._BVS, self._REL, 2), CPU.INSTRUCTION("ADC", self._ADC, self._IZY, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("ADC", self._ADC, self._ZPX, 4), CPU.INSTRUCTION("ROR", self._ROR, self._ZPX, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6), CPU.INSTRUCTION("SEI", self._SEI, self._IMP, 2), CPU.INSTRUCTION("ADC", self._ADC, self._ABY, 4), CPU.INSTRUCTION("???", self._NOP, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("ADC", self._ADC, self._ABX, 4), CPU.INSTRUCTION("ROR", self._ROR, self._ABX, 7), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7),
+            CPU.INSTRUCTION("???", self._NOP, self._IMP, 2), CPU.INSTRUCTION("STA", self._STA, self._IZX, 6), CPU.INSTRUCTION("???", self._NOP, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6), CPU.INSTRUCTION("STY", self._STY, self._ZP0, 3), CPU.INSTRUCTION("STA", self._STA, self._ZP0, 3), CPU.INSTRUCTION("STX", self._STX, self._ZP0, 3), CPU.INSTRUCTION("???", self._XXX, self._IMP, 3), CPU.INSTRUCTION("DEY", self._DEY, self._IMP, 2), CPU.INSTRUCTION("???", self._NOP, self._IMP, 2), CPU.INSTRUCTION("TXA", self._TXA, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("STY", self._STY, self._ABS, 4), CPU.INSTRUCTION("STA", self._STA, self._ABS, 4), CPU.INSTRUCTION("STX", self._STX, self._ABS, 4), CPU.INSTRUCTION("???", self._XXX, self._IMP, 4),
+            CPU.INSTRUCTION("BCC", self._BCC, self._REL, 2), CPU.INSTRUCTION("STA", self._STA, self._IZY, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6), CPU.INSTRUCTION("STY", self._STY, self._ZPX, 4), CPU.INSTRUCTION("STA", self._STA, self._ZPX, 4), CPU.INSTRUCTION("STX", self._STX, self._ZPY, 4), CPU.INSTRUCTION("???", self._XXX, self._IMP, 4), CPU.INSTRUCTION("TYA", self._TYA, self._IMP, 2), CPU.INSTRUCTION("STA", self._STA, self._ABY, 5), CPU.INSTRUCTION("TXS", self._TXS, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5), CPU.INSTRUCTION("???", self._NOP, self._IMP, 5), CPU.INSTRUCTION("STA", self._STA, self._ABX, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5),
+            CPU.INSTRUCTION("LDY", self._LDY, self._IMM, 2), CPU.INSTRUCTION("LDA", self._LDA, self._IZX, 6), CPU.INSTRUCTION("LDX", self._LDX, self._IMM, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6), CPU.INSTRUCTION("LDY", self._LDY, self._ZP0, 3), CPU.INSTRUCTION("LDA", self._LDA, self._ZP0, 3), CPU.INSTRUCTION("LDX", self._LDX, self._ZP0, 3), CPU.INSTRUCTION("???", self._XXX, self._IMP, 3), CPU.INSTRUCTION("TAY", self._TAY, self._IMP, 2), CPU.INSTRUCTION("LDA", self._LDA, self._IMM, 2), CPU.INSTRUCTION("TAX", self._TAX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("LDY", self._LDY, self._ABS, 4), CPU.INSTRUCTION("LDA", self._LDA, self._ABS, 4), CPU.INSTRUCTION("LDX", self._LDX, self._ABS, 4), CPU.INSTRUCTION("???", self._XXX, self._IMP, 4),
+            CPU.INSTRUCTION("BCS", self._BCS, self._REL, 2), CPU.INSTRUCTION("LDA", self._LDA, self._IZY, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5), CPU.INSTRUCTION("LDY", self._LDY, self._ZPX, 4), CPU.INSTRUCTION("LDA", self._LDA, self._ZPX, 4), CPU.INSTRUCTION("LDX", self._LDX, self._ZPY, 4), CPU.INSTRUCTION("???", self._XXX, self._IMP, 4), CPU.INSTRUCTION("CLV", self._CLV, self._IMP, 2), CPU.INSTRUCTION("LDA", self._LDA, self._ABY, 4), CPU.INSTRUCTION("TSX", self._TSX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 4), CPU.INSTRUCTION("LDY", self._LDY, self._ABX, 4), CPU.INSTRUCTION("LDA", self._LDA, self._ABX, 4), CPU.INSTRUCTION("LDX", self._LDX, self._ABY, 4), CPU.INSTRUCTION("???", self._XXX, self._IMP, 4),
+            CPU.INSTRUCTION("CPY", self._CPY, self._IMM, 2), CPU.INSTRUCTION("CMP", self._CMP, self._IZX, 6), CPU.INSTRUCTION("???", self._NOP, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("CPY", self._CPY, self._ZP0, 3), CPU.INSTRUCTION("CMP", self._CMP, self._ZP0, 3), CPU.INSTRUCTION("DEC", self._DEC, self._ZP0, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5), CPU.INSTRUCTION("INY", self._INY, self._IMP, 2), CPU.INSTRUCTION("CMP", self._CMP, self._IMM, 2), CPU.INSTRUCTION("DEX", self._DEX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("CPY", self._CPY, self._ABS, 4), CPU.INSTRUCTION("CMP", self._CMP, self._ABS, 4), CPU.INSTRUCTION("DEC", self._DEC, self._ABS, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6),
+            CPU.INSTRUCTION("BNE", self._BNE, self._REL, 2), CPU.INSTRUCTION("CMP", self._CMP, self._IZY, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("CMP", self._CMP, self._ZPX, 4), CPU.INSTRUCTION("DEC", self._DEC, self._ZPX, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6), CPU.INSTRUCTION("CLD", self._CLD, self._IMP, 2), CPU.INSTRUCTION("CMP", self._CMP, self._ABY, 4), CPU.INSTRUCTION("NOP", self._NOP, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("CMP", self._CMP, self._ABX, 4), CPU.INSTRUCTION("DEC", self._DEC, self._ABX, 7), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7),
+            CPU.INSTRUCTION("CPX", self._CPX, self._IMM, 2), CPU.INSTRUCTION("SBC", self._SBC, self._IZX, 6), CPU.INSTRUCTION("???", self._NOP, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("CPX", self._CPX, self._ZP0, 3), CPU.INSTRUCTION("SBC", self._SBC, self._ZP0, 3), CPU.INSTRUCTION("INC", self._INC, self._ZP0, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5), CPU.INSTRUCTION("INX", self._INX, self._IMP, 2), CPU.INSTRUCTION("SBC", self._SBC, self._IMM, 2), CPU.INSTRUCTION("NOP", self._NOP, self._IMP, 2), CPU.INSTRUCTION("???", self._SBC, self._IMP, 2), CPU.INSTRUCTION("CPX", self._CPX, self._ABS, 4), CPU.INSTRUCTION("SBC", self._SBC, self._ABS, 4), CPU.INSTRUCTION("INC", self._INC, self._ABS, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6),
+            CPU.INSTRUCTION("BEQ", self._BEQ, self._REL, 2), CPU.INSTRUCTION("SBC", self._SBC, self._IZY, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("SBC", self._SBC, self._ZPX, 4), CPU.INSTRUCTION("INC", self._INC, self._ZPX, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6), CPU.INSTRUCTION("SED", self._SED, self._IMP, 2), CPU.INSTRUCTION("SBC", self._SBC, self._ABY, 4), CPU.INSTRUCTION("NOP", self._NOP, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("SBC", self._SBC, self._ABX, 4), CPU.INSTRUCTION("INC", self._INC, self._ABX, 7), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7),
+        ]
     
     def _get_flag(self, flag: CPU.FLAGS) -> bool:
         """
@@ -351,4 +368,178 @@ class CPU:
 
         if (self._addr_abs & 0xFF00) != (h << 8):
             return 1
+        return 0
+    
+    def _ADC(self) -> int:
+        return 0
+
+    def _SBC(self) -> int:
+        return 0
+
+    def _AND(self) -> int:
+        return 0
+
+    def _ASL(self) -> int:
+        return 0
+
+    def _BCC(self) -> int:
+        return 0
+
+    def _BCS(self) -> int:
+        return 0
+
+    def _BEQ(self) -> int:
+        return 0
+
+    def _BIT(self) -> int:
+        return 0
+
+    def _BMI(self) -> int:
+        return 0
+
+    def _BNE(self) -> int:
+        return 0
+
+    def _BPL(self) -> int:
+        return 0
+        
+    def _BRK(self) -> int:
+        return 0
+
+    def _BVC(self) -> int:
+        return 0
+        
+    def _BVS(self) -> int:
+        return 0
+
+    def _CLC(self) -> int:
+        return 0
+
+    def _CLD(self) -> int:
+        return 0
+    
+    def _CLI(self) -> int:
+        return 0
+
+    def _CLV(self) -> int:
+        return 0
+
+    def _CMP(self) -> int:
+        return 0
+
+    def _CPX(self) -> int:
+        return 0
+
+    def _CPY(self) -> int:
+        return 0
+
+    def _DEC(self) -> int:
+        return 0
+        
+    def _DEX(self) -> int:
+        return 0
+
+    def _DEY(self) -> int:
+        return 0
+
+    def _EOR(self) -> int:
+        return 0
+
+    def _INC(self) -> int:
+        return 0
+        
+    def _INX(self) -> int:
+        return 0
+
+    def _INY(self) -> int:
+        return 0
+    
+    def _JMP(self) -> int:
+        return 0
+
+    def _JSR(self) -> int:
+        return 0
+        
+    def _LDA(self) -> int:
+        return 0
+
+    def _LDX(self) -> int:
+        return 0
+    
+    def _LDY(self) -> int:
+        return 0
+
+    def _LSR(self) -> int:
+        return 0
+
+    def _NOP(self) -> int:
+        return 0
+
+    def _ORA(self) -> int:
+        return 0
+        
+    def _PHA(self) -> int:
+        return 0
+
+    def _PHP(self) -> int:
+        return 0
+        
+    def _PLA(self) -> int:
+        return 0
+ 
+    def _PLP(self) -> int:
+        return 0
+
+    def _ROL(self) -> int:
+        return 0
+
+    def _ROR(self) -> int:
+        return 0
+
+    def _RTI(self) -> int:
+        return 0
+ 
+    def _RTS(self) -> int:
+        return 0
+
+    def _SEC(self) -> int:
+        return 0
+
+    def _SED(self) -> int:
+        return 0
+
+    def _SEI(self) -> int:
+        return 0
+
+    def _STA(self) -> int:
+        return 0
+    
+    def _STX(self) -> int:
+        return 0
+    
+    def _STY(self) -> int:
+        return 0
+    
+    def _TAX(self) -> int:
+        return 0
+
+    def _TAY(self) -> int:
+        return 0
+        
+    def _TSX(self) -> int:
+        return 0
+
+    def _TXA(self) -> int:
+        return 0
+
+    def _TXS(self) -> int:
+        return 0
+
+    def _TYA(self) -> int:
+        return 0
+
+    def _XXX(self) -> int:
+        """
+        This function captures illegal opcodes.
+        """
         return 0
