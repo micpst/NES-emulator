@@ -30,35 +30,35 @@ class CPU:
         A Tuple that holds information about instruction supported by the CPU.
         """
         name: str
-        operate: Callable[[], np.uint8]
-        address_mode: Callable[[], np.uint8]
-        cycles: np.uint8
-
+        operate: Callable[[], int]
+        address_mode: Callable[[], int]
+        cycles: int
+    
     def __init__(self) -> None:
         # CPU internal registers:
-        self.a_reg      : np.uint8  = 0x00
-        self.x_reg      : np.uint8  = 0x00
-        self.y_reg      : np.uint8  = 0x00   
-        self.sp_reg     : np.uint8  = 0xFD
-        self.pc_reg     : np.uint16 = 0x0000
-        self.status_reg : np.uint8  = 0x00 | CPU.FLAGS.U.value | CPU.FLAGS.I.value
+        self.a_reg: int = 0x00
+        self.x_reg: int = 0x00
+        self.y_reg: int = 0x00   
+        self.sp_reg: int = 0xFD
+        self.pc_reg: int = 0x0000
+        self.status_reg: int = 0x00 | CPU.FLAGS.U.value | CPU.FLAGS.I.value
         
         # Helper variables:
-        self._fetched     : np.uint8  = 0x00      # Working input value
-        self._temp        : np.uint16 = 0x0000    # Convenience variable
-        self._addr_abs    : np.uint16 = 0x0000    # All used memory addresses
-        self._addr_rel    : np.uint16 = 0x0000    # Absolute address following a branch
-        self._opcode      : np.uint8  = 0x00      # Instruction byte
-        self._cycles      : np.uint8  = 0         # Instruction remaining cycles
-        self._clock_count : np.uint32 = 0         # Global accumulation of the number of clocks
+        self._fetched: int = 0x00    # Working input value
+        self._temp: int = 0x0000     # Convenience variable
+        self._addr_abs: int = 0x0000 # All used memory addresses
+        self._addr_rel: int = 0x0000 # Absolute address following a branch
+        self._opcode: int = 0x00     # Instruction byte
+        self._cycles: int = 0        # Instruction remaining cycles
+        self._clock_count: int = 0   # Global accumulation of the number of clocks
         
         self._lookup: List[CPU.INSTRUCTION] = []
     
-    def _get_flag(self, flag: CPU.FLAGS) -> np.uint8:
+    def _get_flag(self, flag: CPU.FLAGS) -> bool:
         """
         Returns the state of a specific bit of the status register.
         """
-        return 1 if (self.status_reg & flag.value) > 0 else 0
+        return (self.status_reg & flag.value) > 0
     
     def _set_flag(self, flag: CPU.FLAGS, value: bool) -> None:
         """
@@ -69,13 +69,13 @@ class CPU:
         else:
             self.status_reg &= ~flag.value
 
-    def _read(self, address: np.uint16) -> np.uint8:
+    def _read(self, address: int) -> int:
         """
         Reads a byte from the bus at the specified address.
         """
         return self._bus.read(address)
     
-    def _write(self, address: np.uint16, value: np.uint8) -> None:
+    def _write(self, address: int, value: int) -> None:
         """
         Writes a byte to the bus at the specified address.
         """
@@ -113,7 +113,7 @@ class CPU:
         """
         Executes an instruction at a specific location.
         """
-        if self._get_flag(CPU.FLAGS.I) == 0:
+        if not self._get_flag(CPU.FLAGS.I):
             # Push the program counter to the stack:
             self._write(0x0100 + self.sp_reg, (self.pc_reg >> 8) & 0x00FF)
             self.sp_reg -= 1
@@ -175,7 +175,7 @@ class CPU:
             self._opcode = self._read(self.pc_reg)
             
             # Set the unused status flag bit to 1:
-            self._set_flag(CPU.FLAGS.U, 1)
+            self._set_flag(CPU.FLAGS.U, True)
 
             # Increment program counter:
             self.pc_reg += 1
@@ -188,7 +188,7 @@ class CPU:
             self._cycles = self._lookup[self._opcode].cycles + (additional_cycle1 & additional_cycle2)
 
             # Set the unused status flag bit to 1:
-            self._set_flag(CPU.FLAGS.U, 1)
+            self._set_flag(CPU.FLAGS.U, True)
 
         # Increment global clock count:
         self._clock_count += 1
@@ -196,16 +196,14 @@ class CPU:
         # Decrement the number of cycles remaining for this instruction:
         self._cycles -= 1
         
-    def _IMP(self) -> np.uint8:
+    def _IMP(self) -> int:
         """
         Address Mode: Implied
         There is no additional data required for this instruction.
         """
-        # Target the accumulator for instructions like PHA.
-        self._fetched = self.a_reg
         return 0
     
-    def _IMM(self) -> np.uint8:
+    def _IMM(self) -> int:
         """
         Address Mode: Immediate
         The instruction expects the next byte to be used as a value.
@@ -214,7 +212,7 @@ class CPU:
         self.pc_reg += 1
         return 0
     
-    def _ZP0(self) -> np.uint8:
+    def _ZP0(self) -> int:
         """
         Address Mode: Zero Page
         Allows to absolutely address a location in first 0xFF bytes of address range.
@@ -224,7 +222,7 @@ class CPU:
         self._addr_abs &= 0x00FF
         return 0
     
-    def _ZPX(self) -> np.uint8:
+    def _ZPX(self) -> int:
         """
         Address Mode: Zero Page with X offset
         Same as ZP0, but the contents of the X register is added to the given byte address.
@@ -234,7 +232,7 @@ class CPU:
         self._addr_abs &= 0x00FF
         return 0
     
-    def _ZPY(self) -> np.uint8:
+    def _ZPY(self) -> int:
         """
         Address Mode: Zero Page with Y offset
         Same as ZPX, but uses Y register to offset.
@@ -243,8 +241,8 @@ class CPU:
         self.pc_reg += 1
         self._addr_abs &= 0x00FF
         return 0
-    
-    def _REL(self) -> np.uint8:
+  
+    def _REL(self) -> int:
         """
         Address Mode: Relative
         The address must reside within -128 and 127 of the branch instruction.
@@ -255,7 +253,7 @@ class CPU:
             self._addr_rel |= 0xFF0
         return 0
 
-    def _ABS(self) -> np.uint8:
+    def _ABS(self) -> int:
         """
         Address Mode: Absolute
         A full 16-bit address is loaded and used.
@@ -267,7 +265,7 @@ class CPU:
         self._addr_abs = (h << 8) | l
         return 0
 
-    def _ABX(self) -> np.uint8:
+    def _ABX(self) -> int:
         """
         Address Mode: Absolute with X offset
         A full 16-bit address is loaded and used.
@@ -284,7 +282,7 @@ class CPU:
             return 1
         return 0
 
-    def _ABY(self) -> np.uint8:
+    def _ABY(self) -> int:
         """
         Address Mode: Absolute with Y offset
         A full 16-bit address is loaded and used.
@@ -301,7 +299,7 @@ class CPU:
             return 1
         return 0
 
-    def _IND(self) -> np.uint8:
+    def _IND(self) -> int:
         """
         Address mode: Indirect
         The supplied 16-bit address is read to get the actual 16-bit address.
@@ -321,7 +319,7 @@ class CPU:
 
         return 0
 
-    def _IZX(self) -> np.uint8:
+    def _IZX(self) -> int:
         """
         Address mode: Indirect X
         The suplied 8-bit address is offset by X register to index a location in page 0x00.
@@ -336,7 +334,7 @@ class CPU:
 
         return 0
 
-    def _IZY(self) -> np.uint8:
+    def _IZY(self) -> int:
         """
         Address mode: Indirect Y
         The supplied 8-bit  address indexes a location in page 0x00. Form here actual 16-bit
