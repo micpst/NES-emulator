@@ -538,12 +538,27 @@ class CPU:
         return 0
 
     def _STA(self) -> int:
+        """
+        Instruction: Store A Register at Address
+        Function:    M = A
+        """
+        self._write(self._addr_abs, self.a_reg)
         return 0
     
     def _STX(self) -> int:
+        """
+        Instruction: Store X Register at Address
+        Function:    M = X
+        """
+        self._write(self._addr_abs, self.x_reg)
         return 0
     
     def _STY(self) -> int:
+        """
+        Instruction: Store Y Register at Address
+        Function:    M = Y
+        """
+        self._write(self._addr_abs, self.y_reg)
         return 0
     
     def _TAX(self) -> int:
