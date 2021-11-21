@@ -33,7 +33,7 @@ def check_unmodified_flags(status_reg, status_reg_copy):
         (0x37, False, False),
         (0x90, False, True),
     ],
-    ids=["value=0x00", "value>0x00,<0x80", "value>=0x80"]
+    ids=["zero", "neutral", "7_bit_set"]
 )
 @pytest.mark.parametrize(
     "opcode, register",
@@ -53,6 +53,7 @@ def test_load_register_IMM(nes, opcode, register, value, Z, N):
     # Given:
     cycles_used = 1
     status_reg_copy = nes.cpu.status_reg
+    
     nes.ram[0x8000] = opcode
     nes.ram[0x8001] = value
     
@@ -63,10 +64,19 @@ def test_load_register_IMM(nes, opcode, register, value, Z, N):
     # Then:
     assert cycles_used == 2
     assert getattr(nes.cpu, register) == value
-    assert bool(nes.cpu.status_reg & CPU.FLAGS.Z.value) == Z
-    assert bool(nes.cpu.status_reg & CPU.FLAGS.N.value) == N
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.Z.value) is Z
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.N.value) is N
     check_unmodified_flags(nes.cpu.status_reg, status_reg_copy)
 
+@pytest.mark.parametrize(
+    "value, Z, N",
+    [
+        (0x00, True, False),
+        (0x37, False, False),
+        (0x90, False, True),
+    ],
+    ids=["zero", "neutral", "7_bit_set"]
+)
 @pytest.mark.parametrize(
     "opcode, register",
     [
@@ -76,16 +86,19 @@ def test_load_register_IMM(nes, opcode, register, value, Z, N):
     ],
     ids=["LDA", "LDX", "LDY"]
 )
-def test_load_register_ZP0(nes, opcode, register):
+def test_load_register_ZP0(nes, opcode, register, value, Z, N):
     """
     Tests zero page addressing mode for CPU load instructions.
+    Checks that the correct value was loaded to the specified register and
+    that the appropriate flag has been set after the given value was loaded.
     """
     # Given:
     cycles_used = 1
     status_reg_copy = nes.cpu.status_reg
+    
     nes.ram[0x8000] = opcode
     nes.ram[0x8001] = 0x42
-    nes.ram[0x0042] = 0x37
+    nes.ram[0x0042] = value
     
     # When:
     while nes.cpu.clock():
@@ -93,11 +106,20 @@ def test_load_register_ZP0(nes, opcode, register):
     
     # Then:
     assert cycles_used == 3
-    assert getattr(nes.cpu, register) == 0x37
-    assert not (nes.cpu.status_reg & CPU.FLAGS.Z.value)
-    assert not (nes.cpu.status_reg & CPU.FLAGS.N.value)
+    assert getattr(nes.cpu, register) == value
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.Z.value) is Z
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.N.value) is N
     check_unmodified_flags(nes.cpu.status_reg, status_reg_copy)
 
+@pytest.mark.parametrize(
+    "value, Z, N",
+    [
+        (0x00, True, False),
+        (0x37, False, False),
+        (0x90, False, True),
+    ],
+    ids=["zero", "neutral", "7_bit_set"]
+)
 @pytest.mark.parametrize(
     "l, offset, address",
     [
@@ -115,17 +137,20 @@ def test_load_register_ZP0(nes, opcode, register):
     ],
     ids=["LDA_X", "LDX_Y", "LDY_X"]
 )
-def test_load_register_ZP0_XY(nes, opcode, register, offset_register, l, offset, address):
+def test_load_register_ZP0_XY(nes, opcode, register, offset_register, l, offset, address, value, Z, N):
     """
     Tests zero page addressing mode with X and Y offset for CPU load instructions.
+    Checks that the correct value was loaded to the specified register and
+    that the appropriate flag has been set after the given value was loaded.
     """
     # Given:
     cycles_used = 1
     status_reg_copy = nes.cpu.status_reg
     setattr(nes.cpu, offset_register, offset)
+    
     nes.ram[0x8000] = opcode
     nes.ram[0x8001] = l
-    nes.ram[address] = 0x37
+    nes.ram[address] = value
     
     # When:
     while nes.cpu.clock(): 
@@ -133,11 +158,20 @@ def test_load_register_ZP0_XY(nes, opcode, register, offset_register, l, offset,
     
     # Then:
     assert cycles_used == 4
-    assert getattr(nes.cpu, register) == 0x37
-    assert not (nes.cpu.status_reg & CPU.FLAGS.Z.value)
-    assert not (nes.cpu.status_reg & CPU.FLAGS.N.value)
+    assert getattr(nes.cpu, register) == value
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.Z.value) is Z
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.N.value) is N
     check_unmodified_flags(nes.cpu.status_reg, status_reg_copy)
-    
+
+@pytest.mark.parametrize(
+    "value, Z, N",
+    [
+        (0x00, True, False),
+        (0x37, False, False),
+        (0x90, False, True),
+    ],
+    ids=["zero", "neutral", "7_bit_set"]
+) 
 @pytest.mark.parametrize(
     "opcode, register",
     [
@@ -147,17 +181,20 @@ def test_load_register_ZP0_XY(nes, opcode, register, offset_register, l, offset,
     ],
     ids=["LDA", "LDX", "LDY"]
 )
-def test_load_register_ABS(nes, opcode, register):
+def test_load_register_ABS(nes, opcode, register, value, Z, N):
     """
     Tests absolute addressing mode for CPU load instructions.
+    Checks that the correct value was loaded to the specified register and
+    that the appropriate flag has been set after the given value was loaded.
     """
     # Given:
     cycles_used = 1
     status_reg_copy = nes.cpu.status_reg
+    
     nes.ram[0x8000] = opcode
     nes.ram[0x8001] = 0x80
     nes.ram[0x8002] = 0x44
-    nes.ram[0x4480] = 0x37
+    nes.ram[0x4480] = value
     
     # When:
     while nes.cpu.clock():
@@ -165,11 +202,20 @@ def test_load_register_ABS(nes, opcode, register):
     
     # Then:
     assert cycles_used == 4
-    assert getattr(nes.cpu, register) == 0x37
-    assert not (nes.cpu.status_reg & CPU.FLAGS.Z.value)
-    assert not (nes.cpu.status_reg & CPU.FLAGS.N.value)
+    assert getattr(nes.cpu, register) == value
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.Z.value) is Z
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.N.value) is N
     check_unmodified_flags(nes.cpu.status_reg, status_reg_copy)
 
+@pytest.mark.parametrize(
+    "value, Z, N",
+    [
+        (0x00, True, False),
+        (0x37, False, False),
+        (0x90, False, True),
+    ],
+    ids=["zero", "neutral", "7_bit_set"]
+)
 @pytest.mark.parametrize(
     "l, h, offset, address, cycles",
     [
@@ -188,18 +234,21 @@ def test_load_register_ABS(nes, opcode, register):
     ],
     ids=["LDA_X", "LDY_X", "LDA_Y", "LDX_Y"]
 )
-def test_load_register_ABS_XY(nes, opcode, register, offset_register, l, h, offset, address, cycles):
+def test_load_register_ABS_XY(nes, opcode, register, offset_register, l, h, offset, address, cycles, value, Z, N):
     """
     Tests absolute addressing mode with X and Y offset for CPU load instructions.
+    Checks that the correct value was loaded to the specified register and
+    that the appropriate flag has been set after the given value was loaded.
     """
     # Given:
     cycles_used = 1
     status_reg_copy = nes.cpu.status_reg
     setattr(nes.cpu, offset_register, offset)
+    
     nes.ram[0x8000] = opcode
     nes.ram[0x8001] = l
     nes.ram[0x8002] = h
-    nes.ram[address] = 0x37
+    nes.ram[address] = value
     
     # When:
     while nes.cpu.clock():
@@ -207,11 +256,20 @@ def test_load_register_ABS_XY(nes, opcode, register, offset_register, l, h, offs
     
     # Then:
     assert cycles_used == cycles
-    assert getattr(nes.cpu, register) == 0x37
-    assert not (nes.cpu.status_reg & CPU.FLAGS.Z.value)
-    assert not (nes.cpu.status_reg & CPU.FLAGS.N.value)
+    assert getattr(nes.cpu, register) == value
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.Z.value) is Z
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.N.value) is N
     check_unmodified_flags(nes.cpu.status_reg, status_reg_copy)
 
+@pytest.mark.parametrize(
+    "value, Z, N",
+    [
+        (0x00, True, False),
+        (0x37, False, False),
+        (0x90, False, True),
+    ],
+    ids=["zero", "neutral", "7_bit_set"]
+) 
 @pytest.mark.parametrize(
     "l_ptr, offset, ptr_address, l, h, address",
     [
@@ -220,19 +278,22 @@ def test_load_register_ABS_XY(nes, opcode, register, offset_register, l, h, offs
     ],
     ids=["LDA-not_wrapping_page", "LDA-wrapping_page"]
 )
-def test_load_register_IZX(nes, l_ptr, ptr_address, l, h, offset, address):
+def test_load_register_IZX(nes, l_ptr, ptr_address, l, h, offset, address, value, Z, N):
     """
     Tests indirect X addressing mode for CPU load instructions.
+    Checks that the correct value was loaded to the specified register and
+    that the appropriate flag has been set after the given value was loaded.
     """
     # Given:
     cycles_used = 1
     status_reg_copy = nes.cpu.status_reg
     nes.cpu.x_reg = offset
+    
     nes.ram[0x8000] = 0xA1
     nes.ram[0x8001] = l_ptr
     nes.ram[ptr_address] = l
     nes.ram[ptr_address + 1] = h
-    nes.ram[address] = 0x37
+    nes.ram[address] = value
     
     # When:
     while nes.cpu.clock():
@@ -240,11 +301,20 @@ def test_load_register_IZX(nes, l_ptr, ptr_address, l, h, offset, address):
     
     # Then:
     assert cycles_used == 6
-    assert nes.cpu.a_reg == 0x37
-    assert not (nes.cpu.status_reg & CPU.FLAGS.Z.value)
-    assert not (nes.cpu.status_reg & CPU.FLAGS.N.value)
+    assert nes.cpu.a_reg == value
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.Z.value) is Z
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.N.value) is N
     check_unmodified_flags(nes.cpu.status_reg, status_reg_copy)
 
+@pytest.mark.parametrize(
+    "value, Z, N",
+    [
+        (0x00, True, False),
+        (0x37, False, False),
+        (0x90, False, True),
+    ],
+    ids=["zero", "neutral", "7_bit_set"]
+) 
 @pytest.mark.parametrize(
     "l_ptr, offset, ptr_address, l, h, address, cycles",
     [
@@ -253,19 +323,22 @@ def test_load_register_IZX(nes, l_ptr, ptr_address, l, h, offset, address):
     ],
     ids=["LDA-not_crossing_page", "LDA-crossing_page"]
 )
-def test_load_register_IZY(nes, l_ptr, offset, ptr_address, l, h, address, cycles):
+def test_load_register_IZY(nes, l_ptr, offset, ptr_address, l, h, address, cycles, value, Z, N):
     """
     Tests indirect Y addressing mode for CPU load instructions.
+    Checks that the correct value was loaded to the specified register and
+    that the appropriate flag has been set after the given value was loaded.
     """
     # Given:
     cycles_used = 1
     status_reg_copy = nes.cpu.status_reg
     nes.cpu.y_reg = offset
+    
     nes.ram[0x8000] = 0xB1
     nes.ram[0x8001] = l_ptr
     nes.ram[ptr_address] = l
     nes.ram[ptr_address + 1] = h
-    nes.ram[address] = 0x37
+    nes.ram[address] = value
     
     # When:
     while nes.cpu.clock():
@@ -273,7 +346,7 @@ def test_load_register_IZY(nes, l_ptr, offset, ptr_address, l, h, address, cycle
     
     # Then:
     assert cycles_used == cycles
-    assert nes.cpu.a_reg == 0x37
-    assert not (nes.cpu.status_reg & CPU.FLAGS.Z.value)
-    assert not (nes.cpu.status_reg & CPU.FLAGS.N.value)
+    assert nes.cpu.a_reg == value
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.Z.value) is Z
+    assert bool(nes.cpu.status_reg & CPU.FLAGS.N.value) is N
     check_unmodified_flags(nes.cpu.status_reg, status_reg_copy)
