@@ -344,11 +344,11 @@ class CPU:
         The suplied 8-bit address is offset by X register to index a location in page 0x00.
         The actual 16-bit address is read from this location.
         """
-        t = self._read(self.pc_reg)
+        t = self._read(self.pc_reg) + self.x_reg
         self.pc_reg += 1
 
-        l = self._read((t + self.x_reg) & 0x00FF)
-        h = self._read((t + self.x_reg + 1) & 0x00FF)
+        l = self._read(t & 0x00FF)
+        h = self._read((t + 1) & 0x00FF)
         self._addr_abs = (h << 8) | l
 
         return 0
@@ -364,9 +364,7 @@ class CPU:
 
         l = self._read(t & 0x00FF)
         h = self._read((t + 1) & 0x00FF)
-
-        self._addr_abs = (h << 8) | l
-        self._addr_abs += self.y_reg
+        self._addr_abs = ((h << 8) | l) + self.y_reg
 
         if (self._addr_abs & 0xFF00) != (h << 8):
             return 1
