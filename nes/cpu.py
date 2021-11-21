@@ -287,7 +287,7 @@ class CPU:
     def _ABX(self) -> int:
         """
         Address Mode: Absolute with X offset
-        A full 16-bit address is loaded and used.
+        Same as ABS, but the contents of the X register is added to the given 16-bit address.
         """
         l = self._read(self.pc_reg)
         self.pc_reg += 1
@@ -304,7 +304,7 @@ class CPU:
     def _ABY(self) -> int:
         """
         Address Mode: Absolute with Y offset
-        A full 16-bit address is loaded and used.
+        Same as ABX, but uses Y register to offset.
         """
         l = self._read(self.pc_reg)
         self.pc_reg += 1
