@@ -183,7 +183,7 @@ class CPU:
         # IRQs take time:
         self._cycles = 8
         
-    def clock(self) -> None:
+    def clock(self) -> int:
         """
         Perform one clock cycle's worth of update.
         """
@@ -212,6 +212,8 @@ class CPU:
 
         # Decrement the number of cycles remaining for this instruction:
         self._cycles -= 1
+        
+        return self._cycles
         
     def _IMP(self) -> int:
         """
@@ -461,13 +463,37 @@ class CPU:
         return 0
         
     def _LDA(self) -> int:
-        return 0
+        """
+        Instruction: Load The Accumulator
+        Function:    A = M
+        Flags Out:   N, Z
+        """
+        self.a_reg = self._read(self._addr_abs)
+        self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
+        return 1
 
     def _LDX(self) -> int:
-        return 0
+        """
+        Instruction: Load The X Register
+        Function:    X = M
+        Flags Out:   N, Z
+        """
+        self.x_reg = self._read(self._addr_abs)
+        self._set_flag(CPU.FLAGS.Z, self.x_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.x_reg & 0x80) > 0)
+        return 1
     
     def _LDY(self) -> int:
-        return 0
+        """
+        Instruction: Load The Y Register
+        Function:    Y = M
+        Flags Out:   N, Z
+        """
+        self.y_reg = self._read(self._addr_abs)
+        self._set_flag(CPU.FLAGS.Z, self.y_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.y_reg & 0x80) > 0)
+        return 1
 
     def _LSR(self) -> int:
         return 0
