@@ -18,7 +18,7 @@ def nes():
 
 def check_unmodified_flags(status_reg, status_reg_copy):
     """
-    Checks that the rest of the flags were not changed.
+    Checks that the rest of the status registry flags have not been changed.
     """
     assert (status_reg & CPU.FLAGS.C.value) == (status_reg_copy & CPU.FLAGS.C.value)
     assert (status_reg & CPU.FLAGS.I.value) == (status_reg_copy & CPU.FLAGS.I.value)
@@ -47,8 +47,6 @@ def check_unmodified_flags(status_reg, status_reg_copy):
 def test_load_register_IMM(nes, opcode, register, value, Z, N):
     """
     Tests immediate addressing mode for CPU load instructions.
-    Checks that the correct value was loaded to the specified register and
-    that the appropriate flag has been set after the given value was loaded.
     """
     # Given:
     cycles_used = 1
@@ -89,8 +87,6 @@ def test_load_register_IMM(nes, opcode, register, value, Z, N):
 def test_load_register_ZP0(nes, opcode, register, value, Z, N):
     """
     Tests zero page addressing mode for CPU load instructions.
-    Checks that the correct value was loaded to the specified register and
-    that the appropriate flag has been set after the given value was loaded.
     """
     # Given:
     cycles_used = 1
@@ -135,13 +131,11 @@ def test_load_register_ZP0(nes, opcode, register, value, Z, N):
         (0xB6, "x_reg", "y_reg"),
         (0xB4, "y_reg", "x_reg"),
     ],
-    ids=["LDA_X", "LDX_Y", "LDY_X"]
+    ids=["X_LDA", "Y_LDX", "X_LDY"]
 )
-def test_load_register_ZP0_XY(nes, opcode, register, offset_register, l, offset, address, value, Z, N):
+def test_load_register_ZP(nes, opcode, register, offset_register, l, offset, address, value, Z, N):
     """
     Tests zero page addressing mode with X and Y offset for CPU load instructions.
-    Checks that the correct value was loaded to the specified register and
-    that the appropriate flag has been set after the given value was loaded.
     """
     # Given:
     cycles_used = 1
@@ -184,8 +178,6 @@ def test_load_register_ZP0_XY(nes, opcode, register, offset_register, l, offset,
 def test_load_register_ABS(nes, opcode, register, value, Z, N):
     """
     Tests absolute addressing mode for CPU load instructions.
-    Checks that the correct value was loaded to the specified register and
-    that the appropriate flag has been set after the given value was loaded.
     """
     # Given:
     cycles_used = 1
@@ -232,13 +224,11 @@ def test_load_register_ABS(nes, opcode, register, value, Z, N):
         (0xB9, "a_reg", "y_reg"),
         (0xBE, "x_reg", "y_reg"),
     ],
-    ids=["LDA_X", "LDY_X", "LDA_Y", "LDX_Y"]
+    ids=["X_LDA", "X_LDY", "Y_LDA", "Y_LDX"]
 )
-def test_load_register_ABS_XY(nes, opcode, register, offset_register, l, h, offset, address, cycles, value, Z, N):
+def test_load_register_AB(nes, opcode, register, offset_register, l, h, offset, address, cycles, value, Z, N):
     """
     Tests absolute addressing mode with X and Y offset for CPU load instructions.
-    Checks that the correct value was loaded to the specified register and
-    that the appropriate flag has been set after the given value was loaded.
     """
     # Given:
     cycles_used = 1
@@ -276,13 +266,11 @@ def test_load_register_ABS_XY(nes, opcode, register, offset_register, l, h, offs
         (0x02, 0x04, 0x0006, 0x00, 0x44, 0x4400),
         (0x80, 0xFF, 0x007F, 0x00, 0x44, 0x4400),
     ],
-    ids=["LDA-not_wrapping_page", "LDA-wrapping_page"]
+    ids=["not_wrapping_page", "wrapping_page"]
 )
-def test_load_register_IZX(nes, l_ptr, ptr_address, l, h, offset, address, value, Z, N):
+def test_load_register_IZX_LDA(nes, l_ptr, ptr_address, l, h, offset, address, value, Z, N):
     """
-    Tests indirect X addressing mode for CPU load instructions.
-    Checks that the correct value was loaded to the specified register and
-    that the appropriate flag has been set after the given value was loaded.
+    Tests indirect X addressing mode for CPU LDA instruction.
     """
     # Given:
     cycles_used = 1
@@ -321,13 +309,11 @@ def test_load_register_IZX(nes, l_ptr, ptr_address, l, h, offset, address, value
         (0x02, 0x04, 0x0002, 0x00, 0x44, 0x4404, 5),
         (0x02, 0xFF, 0x0002, 0x80, 0x44, 0x457F, 6),
     ],
-    ids=["LDA-not_crossing_page", "LDA-crossing_page"]
+    ids=["not_crossing_page", "crossing_page"]
 )
-def test_load_register_IZY(nes, l_ptr, offset, ptr_address, l, h, address, cycles, value, Z, N):
+def test_load_register_IZY_LDA(nes, l_ptr, offset, ptr_address, l, h, address, cycles, value, Z, N):
     """
-    Tests indirect Y addressing mode for CPU load instructions.
-    Checks that the correct value was loaded to the specified register and
-    that the appropriate flag has been set after the given value was loaded.
+    Tests indirect Y addressing mode for CPU LDA instruction.
     """
     # Given:
     cycles_used = 1
