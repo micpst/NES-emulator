@@ -190,27 +190,16 @@ class CPU:
         if self._cycles == 0:
             # Read next instruction byte:
             self._opcode = self._read(self.pc_reg)
-            
-            # Set the unused status flag bit to 1:
-            self._set_flag(CPU.FLAGS.U, True)
-
-            # Increment program counter:
             self.pc_reg += 1
             
             # Fetch intermediate data and perform the operation:
-            additional_cycle1 = self._lookup[self._opcode].address_mode()
-            additional_cycle2 = self._lookup[self._opcode].operate()
+            extra_cycle1 = self._lookup[self._opcode].address_mode()
+            extra_cycle2 = self._lookup[self._opcode].operate()
 
             # Set the required number of cycles:
-            self._cycles = self._lookup[self._opcode].cycles + (additional_cycle1 & additional_cycle2)
+            self._cycles = self._lookup[self._opcode].cycles + (extra_cycle1 & extra_cycle2)
 
-            # Set the unused status flag bit to 1:
-            self._set_flag(CPU.FLAGS.U, True)
-
-        # Increment global clock count:
         self._clock_count += 1
-
-        # Decrement the number of cycles remaining for this instruction:
         self._cycles -= 1
         
         return self._cycles
@@ -328,12 +317,12 @@ class CPU:
         h = self._read(self.pc_reg)
         self.pc_reg += 1
         ptr = (h << 8) | l
-
-        # Simulate page boundary harware bug:
-        if l == 0x00FF: 
+      
+        if l == 0x00FF:
+            # Simulate page boundary harware bug:
             self._addr_abs = (self._read(ptr & 0xFF00) << 8) | self._read(ptr)
-        # Behave normally:
         else:
+            # Behave normally:
             self._addr_abs = (self._read(ptr + 1) << 8) | self._read(ptr)
 
         return 0
