@@ -44,8 +44,6 @@ class CPU:
         self.status_reg: int = 0x00 | CPU.FLAGS.U.value | CPU.FLAGS.I.value
         
         # Helper variables:
-        self._fetched: int = 0x00    # Working input value
-        self._temp: int = 0x0000     # Convenience variable
         self._addr_abs: int = 0x0000 # All used memory addresses
         self._addr_rel: int = 0x0000 # Absolute address following a branch
         self._opcode: int = 0x00     # Instruction byte
@@ -80,11 +78,8 @@ class CPU:
     def _set_flag(self, flag: CPU.FLAGS, value: bool) -> None:
         """
         Sets or resets a specific bit of the status register.
-        """
-        if value:
-            self.status_reg |= flag.value
-        else:
-            self.status_reg &= ~flag.value
+        """         
+        self.status_reg ^= (-value ^ self.status_reg) & flag.value
 
     def _read(self, address: int) -> int:
         """
@@ -119,7 +114,6 @@ class CPU:
         self.status_reg = 0x00 | CPU.FLAGS.U.value | CPU.FLAGS.I.value
 
         # Clear helper variables:
-        self._fetched = 0x00
         self._addr_abs = 0x0000
         self._addr_rel = 0x0000
         
