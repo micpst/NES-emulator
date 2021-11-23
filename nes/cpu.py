@@ -549,21 +549,53 @@ class CPU:
         return 0
     
     def _TAX(self) -> int:
+        """
+        Instruction: Transfer Accumulator to X Register
+        Function:    X = A
+        Flags Out:   N, Z
+        """
+        self.x_reg = self.a_reg
+        self._set_flag(CPU.FLAGS.Z, self.x_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.x_reg & 0x80) > 0)
         return 0
 
     def _TAY(self) -> int:
+        """
+        Instruction: Transfer Accumulator to Y Register
+        Function:    Y = A
+        Flags Out:   N, Z
+        """
+        self.y_reg = self.a_reg
+        self._set_flag(CPU.FLAGS.Z, self.y_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.y_reg & 0x80) > 0)
         return 0
         
     def _TSX(self) -> int:
         return 0
 
     def _TXA(self) -> int:
+        """
+        Instruction: Transfer X Register to Accumulator
+        Function:    A = X
+        Flags Out:   N, Z
+        """
+        self.a_reg = self.x_reg
+        self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
         return 0
 
     def _TXS(self) -> int:
         return 0
 
     def _TYA(self) -> int:
+        """
+        Instruction: Transfer Y Register to Accumulator
+        Function:    A = Y
+        Flags Out:   N, Z
+        """
+        self.a_reg = self.y_reg
+        self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
         return 0
 
     def _XXX(self) -> int:
