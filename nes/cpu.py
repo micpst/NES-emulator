@@ -258,7 +258,7 @@ class CPU:
         self._addr_rel = self._read(self.pc_reg)
         self.pc_reg += 1
         if self._addr_rel & 0x80:
-            self._addr_rel |= 0xFF0
+            self._addr_rel |= 0xFF00
         return 0
 
     def _ABS(self) -> int:
@@ -492,15 +492,42 @@ class CPU:
         return 0
         
     def _PHA(self) -> int:
+        """
+        Instruction: Push Accumulator to Stack
+        Function:    A -> Stack
+        """
+        self._write(0x0100 + self.sp_reg, self.a_reg)
+        self.sp_reg -= 1
         return 0
 
     def _PHP(self) -> int:
+        """
+        Instruction: Push Status Register to Stack
+        Function:    Status -> Stack
+        """
+        self._write(0x0100 + self.sp_reg, self.status_reg)
+        self.sp_reg -= 1
         return 0
         
     def _PLA(self) -> int:
+        """
+        Instruction: Pop Accumulator off Stack
+        Function:    A <- Stack
+        Flags Out:   N, Z
+        """
+        self.sp_reg += 1
+        self.a_reg = self._read(0x0100 + self.sp_reg)
+        self._set_flag(CPU.FLAGS.Z, self.x_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.x_reg & 0x80) > 0)
         return 0
  
     def _PLP(self) -> int:
+        """
+        Instruction: Pop Status Register off Stack
+        Function:    Status <- Stack
+        """
+        self.sp_reg += 1
+        self.status_reg = self._read(0x0100 + self.sp_reg)
         return 0
 
     def _ROL(self) -> int:
@@ -571,6 +598,14 @@ class CPU:
         return 0
         
     def _TSX(self) -> int:
+        """
+        Instruction: Transfer Stack Pointer to X Register
+        Function:    X = S
+        Flags Out:   N, Z
+        """
+        self.x_reg = self.sp_reg
+        self._set_flag(CPU.FLAGS.Z, self.x_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.x_reg & 0x80) > 0)
         return 0
 
     def _TXA(self) -> int:
@@ -585,6 +620,11 @@ class CPU:
         return 0
 
     def _TXS(self) -> int:
+        """
+        Instruction: Transfer X Register to Stack Pointer
+        Function:    S = X
+        """
+        self.sp_reg = self.x_reg
         return 0
 
     def _TYA(self) -> int:
