@@ -360,7 +360,15 @@ class CPU:
         return 0
 
     def _AND(self) -> int:
-        return 0
+        """
+        Instruction: Bitwise Logic AND
+        Function:    A = A & M
+        Flags Out:   N, Z
+        """
+        self.a_reg &= self._read(self._addr_abs)
+        self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
+        return 1
 
     def _ASL(self) -> int:
         return 0
@@ -375,6 +383,15 @@ class CPU:
         return 0
 
     def _BIT(self) -> int:
+        """
+        Instruction: Bit Test
+        Function:    A & M, V = M6, N = M7
+        Flags Out:   N, V, Z
+        """
+        m = self._read(self._addr_abs)
+        self._set_flag(CPU.FLAGS.Z, (self.a_reg & m) == 0x00)
+        self._set_flag(CPU.FLAGS.V, (m & 0x40) > 0)
+        self._set_flag(CPU.FLAGS.N, (m & 0x80) > 0)
         return 0
 
     def _BMI(self) -> int:
@@ -426,7 +443,15 @@ class CPU:
         return 0
 
     def _EOR(self) -> int:
-        return 0
+        """
+        Instruction: Bitwise Logic XOR
+        Function:    A = A ^ M
+        Flags Out:   N, Z
+        """
+        self.a_reg ^= self._read(self._addr_abs)
+        self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
+        return 1
 
     def _INC(self) -> int:
         return 0
@@ -483,7 +508,15 @@ class CPU:
         return 0
 
     def _ORA(self) -> int:
-        return 0
+        """
+        Instruction: Bitwise Logic OR
+        Function:    A = A | M
+        Flags Out:   N, Z
+        """
+        self.a_reg |= self._read(self._addr_abs)
+        self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
+        return 1
         
     def _PHA(self) -> int:
         """
@@ -511,8 +544,8 @@ class CPU:
         """
         self.sp_reg += 1
         self.a_reg = self._read(0x0100 + self.sp_reg)
-        self._set_flag(CPU.FLAGS.Z, self.x_reg == 0x00)
-        self._set_flag(CPU.FLAGS.N, (self.x_reg & 0x80) > 0)
+        self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
         return 0
  
     def _PLP(self) -> int:
