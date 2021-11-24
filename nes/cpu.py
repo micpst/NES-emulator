@@ -354,10 +354,25 @@ class CPU:
         return 0
     
     def _ADC(self) -> int:
-        return 0
+        """
+        Instruction: Add with Carry
+        Function:    A = A + M + C
+        Flags Out:   C, Z, V, N
+        """
+        m = self._read(self._addr_abs)
+        temp = self.a_reg + m + self._get_flag(CPU.FLAGS.C)
+        
+        self._set_flag(CPU.FLAGS.C, temp > 0xFF)
+        
+        # Not sure if it works - has to be tested
+        self._set_flag(CPU.FLAGS.V, ((~(self.a_reg ^ m) & (self.a_reg ^ temp)) & 0x0080) > 0)
 
-    def _SBC(self) -> int:
-        return 0
+        self.a_reg = temp & 0x00FF
+        
+        self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
+        
+        return 1
 
     def _AND(self) -> int:
         """
@@ -425,12 +440,42 @@ class CPU:
         return 0
 
     def _CMP(self) -> int:
-        return 0
+        """
+        Instruction: Compare Accumulator
+        Function:    Z <- (A - M) == 0
+        Flags Out:   C, Z, N
+        """
+        m = self._read(self._addr_abs)
+        temp = (self.a_reg - m) & 0x00FF
+        self._set_flag(CPU.FLAGS.C, self.a_reg >= m)
+        self._set_flag(CPU.FLAGS.Z, temp == 0x00)
+        self._set_flag(CPU.FLAGS.N, (temp & 0x80) > 0)
+        return 1
 
     def _CPX(self) -> int:
+        """
+        Instruction: Compare X Register
+        Function:    Z <- (X - M) == 0
+        Flags Out:   C, Z, N
+        """
+        m = self._read(self._addr_abs)
+        temp = (self.x_reg - m) & 0x00FF
+        self._set_flag(CPU.FLAGS.C, self.x_reg >= m)
+        self._set_flag(CPU.FLAGS.Z, temp == 0x00)
+        self._set_flag(CPU.FLAGS.N, (temp & 0x80) > 0)
         return 0
 
     def _CPY(self) -> int:
+        """
+        Instruction: Compare Y Register
+        Function:    Z <- (Y - M) == 0
+        Flags Out:   C, Z, N
+        """
+        m = self._read(self._addr_abs)
+        temp = (self.y_reg - m) & 0x00FF
+        self._set_flag(CPU.FLAGS.C, self.y_reg >= m)
+        self._set_flag(CPU.FLAGS.Z, temp == 0x00)
+        self._set_flag(CPU.FLAGS.N, (temp & 0x80) > 0)
         return 0
 
     def _DEC(self) -> int:
@@ -568,6 +613,27 @@ class CPU:
  
     def _RTS(self) -> int:
         return 0
+
+    def _SBC(self) -> int:
+        """
+        Instruction: Subtract with Carry
+        Function:    A = A - M - (1 - C)
+        Flags Out:   C, Z, V, N
+        """
+        m = self._read(self._addr_abs) ^ 0x00FF
+        temp = self.a_reg + m + self._get_flag(CPU.FLAGS.C)
+        
+        self._set_flag(CPU.FLAGS.C, temp > 0xFF)
+        
+        # Not sure if it works - has to be tested
+        self._set_flag(CPU.FLAGS.V, ((~(self.a_reg ^ m) & (self.a_reg ^ temp)) & 0x0080) > 0)
+
+        self.a_reg = temp & 0x00FF
+        
+        self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
+        
+        return 1
 
     def _SEC(self) -> int:
         return 0
