@@ -479,12 +479,37 @@ class CPU:
         return 0
 
     def _DEC(self) -> int:
+        """
+        Instruction: Decrement a Memory Location
+        Function:    M = M - 1
+        Flags Out:   Z, N
+        """
+        m = (self._read(self._addr_abs) - 1) & 0x00FF
+        self._write(self._addr_abs, m)
+        self._set_flag(CPU.FLAGS.Z, m == 0x00)
+        self._set_flag(CPU.FLAGS.N, (m & 0x80) > 0)
         return 0
         
     def _DEX(self) -> int:
+        """
+        Instruction: Decrement the X Register
+        Function:    X = X - 1
+        Flags Out:   Z, N
+        """
+        self.x_reg = (self.x_reg - 1) & 0x00FF
+        self._set_flag(CPU.FLAGS.Z, self.x_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.x_reg & 0x80) > 0)
         return 0
 
     def _DEY(self) -> int:
+        """
+        Instruction: Decrement the Y Register
+        Function:    Y = Y - 1
+        Flags Out:   Z, N
+        """
+        self.y_reg = (self.y_reg - 1) & 0x00FF
+        self._set_flag(CPU.FLAGS.Z, self.y_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.y_reg & 0x80) > 0)
         return 0
 
     def _EOR(self) -> int:
@@ -499,12 +524,37 @@ class CPU:
         return 1
 
     def _INC(self) -> int:
+        """
+        Instruction: Increment a Memory Location
+        Function:    M = M + 1
+        Flags Out:   Z, N
+        """
+        m = (self._read(self._addr_abs) + 1) & 0x00FF
+        self._write(self._addr_abs, m)
+        self._set_flag(CPU.FLAGS.Z, m == 0x00)
+        self._set_flag(CPU.FLAGS.N, (m & 0x80) > 0)
         return 0
         
     def _INX(self) -> int:
+        """
+        Instruction: Increment the X Register
+        Function:    X = X + 1
+        Flags Out:   Z, N
+        """
+        self.x_reg = (self.x_reg + 1) & 0x00FF
+        self._set_flag(CPU.FLAGS.Z, self.x_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.x_reg & 0x80) > 0)
         return 0
 
     def _INY(self) -> int:
+        """
+        Instruction: Increment the Y Register
+        Function:    Y = Y + 1
+        Flags Out:   Z, N
+        """
+        self.y_reg = (self.y_reg + 1) & 0x00FF
+        self._set_flag(CPU.FLAGS.Z, self.y_reg == 0x00)
+        self._set_flag(CPU.FLAGS.N, (self.y_reg & 0x80) > 0)
         return 0
     
     def _JMP(self) -> int:
