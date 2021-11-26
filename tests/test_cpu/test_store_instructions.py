@@ -1,20 +1,5 @@
 import pytest
 from nes.cpu import CPU
-from nes.bus import Bus
-
-@pytest.fixture
-def nes():
-    nes = Bus()
-    
-    # Set reset vector:
-    nes.ram[0xFFFC] = 0x00
-    nes.ram[0xFFFD] = 0x80
-    
-    # Reset:
-    nes.cpu.reset()
-    while nes.cpu.clock(): pass
-    
-    return nes
 
 def check_unmodified_flags(status_reg, status_reg_copy):
     """
@@ -31,11 +16,10 @@ def check_unmodified_flags(status_reg, status_reg_copy):
 @pytest.mark.parametrize(
     "opcode, register",
     [
-        (0x85, "a_reg"),
-        (0x86, "x_reg"),
-        (0x84, "y_reg"),
-    ],
-    ids=["STA", "STX", "STY"]
+        pytest.param(0x85, "a_reg", id="STA"),
+        pytest.param(0x86, "x_reg", id="STX"),
+        pytest.param(0x84, "y_reg", id="STY"),
+    ]
 )
 def test_store_register_ZP0(nes, opcode, register):
     """
@@ -62,11 +46,10 @@ def test_store_register_ZP0(nes, opcode, register):
 @pytest.mark.parametrize(
     "opcode, register, offset_register",
     [
-        (0x95, "a_reg", "x_reg"),
-        (0x96, "x_reg", "y_reg"),
-        (0x94, "y_reg", "x_reg"),
-    ],
-    ids=["X_STA", "Y_STX", "X_STY"]
+        pytest.param(0x95, "a_reg", "x_reg", id="X_STA"),
+        pytest.param(0x96, "x_reg", "y_reg", id="Y_STX"),
+        pytest.param(0x94, "y_reg", "x_reg", id="X_STY"),
+    ]
 )
 def test_store_register_ZP(nes, opcode, register, offset_register):
     """
@@ -94,11 +77,10 @@ def test_store_register_ZP(nes, opcode, register, offset_register):
 @pytest.mark.parametrize(
     "opcode, register",
     [
-        (0x8D, "a_reg"),
-        (0x8E, "x_reg"),
-        (0x8C, "y_reg"),
-    ],
-    ids=["STA", "STX", "STY"]
+        pytest.param(0x8D, "a_reg", id="STA"),
+        pytest.param(0x8E, "x_reg", id="STX"),
+        pytest.param(0x8C, "y_reg", id="STY"),
+    ]
 )
 def test_store_register_ABS(nes, opcode, register):
     """
@@ -126,10 +108,9 @@ def test_store_register_ABS(nes, opcode, register):
 @pytest.mark.parametrize(
     "opcode, register, offset_register",
     [
-        (0x9D, "a_reg", "x_reg"),
-        (0x99, "a_reg", "y_reg"),
-    ],
-    ids=["X_STA", "Y_STA"]
+        pytest.param(0x9D, "a_reg", "x_reg", id="X_STA"),
+        pytest.param(0x99, "a_reg", "y_reg", id="Y_STA"),
+    ]
 )   
 def test_store_register_AB(nes, opcode, register, offset_register):
     """
