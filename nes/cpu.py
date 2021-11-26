@@ -227,7 +227,7 @@ class CPU:
     def _ZPX(self) -> int:
         """
         Address Mode: Zero Page with X offset
-        Same as ZP0, but the contents of the X register is added to the given byte address.
+        Same as ZP0, but the contents of the X register is added to the given 8-bit address.
         """
         self._addr_abs = self._read(self.pc_reg) + self.x_reg
         self.pc_reg += 1
@@ -324,7 +324,7 @@ class CPU:
     def _IZX(self) -> int:
         """
         Address mode: Indirect X
-        The suplied 8-bit address is offset by X register to index a location in page 0x00.
+        The supplied 8-bit address is offset by X register to index a location in page 0x00.
         The actual 16-bit address is read from this location.
         """
         t = self._read(self.pc_reg) + self.x_reg
@@ -339,8 +339,8 @@ class CPU:
     def _IZY(self) -> int:
         """
         Address mode: Indirect Y
-        The supplied 8-bit  address indexes a location in page 0x00. Form here actual 16-bit
-        address is read and the contents of Y register is added to it to offset it.
+        The supplied 8-bit address indexes a location in page 0x00. 
+        The actual 16-bit address is read and Y register is added to it to offset it.
         """
         t = self._read(self.pc_reg)
         self.pc_reg += 1
@@ -378,7 +378,7 @@ class CPU:
         """
         Instruction: Bitwise Logic AND
         Function:    A = A & M
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.a_reg &= self._read(self._addr_abs)
         self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
@@ -491,7 +491,7 @@ class CPU:
         """
         Instruction: Bitwise Logic XOR
         Function:    A = A ^ M
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.a_reg ^= self._read(self._addr_abs)
         self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
@@ -517,7 +517,7 @@ class CPU:
         """
         Instruction: Load The Accumulator
         Function:    A = M
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.a_reg = self._read(self._addr_abs)
         self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
@@ -528,7 +528,7 @@ class CPU:
         """
         Instruction: Load The X Register
         Function:    X = M
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.x_reg = self._read(self._addr_abs)
         self._set_flag(CPU.FLAGS.Z, self.x_reg == 0x00)
@@ -539,7 +539,7 @@ class CPU:
         """
         Instruction: Load The Y Register
         Function:    Y = M
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.y_reg = self._read(self._addr_abs)
         self._set_flag(CPU.FLAGS.Z, self.y_reg == 0x00)
@@ -556,7 +556,7 @@ class CPU:
         """
         Instruction: Bitwise Logic OR
         Function:    A = A | M
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.a_reg |= self._read(self._addr_abs)
         self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
@@ -585,7 +585,7 @@ class CPU:
         """
         Instruction: Pop Accumulator off Stack
         Function:    A <- Stack
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.sp_reg += 1
         self.a_reg = self._read(0x0100 + self.sp_reg)
@@ -672,7 +672,7 @@ class CPU:
         """
         Instruction: Transfer Accumulator to X Register
         Function:    X = A
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.x_reg = self.a_reg
         self._set_flag(CPU.FLAGS.Z, self.x_reg == 0x00)
@@ -683,7 +683,7 @@ class CPU:
         """
         Instruction: Transfer Accumulator to Y Register
         Function:    Y = A
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.y_reg = self.a_reg
         self._set_flag(CPU.FLAGS.Z, self.y_reg == 0x00)
@@ -694,7 +694,7 @@ class CPU:
         """
         Instruction: Transfer Stack Pointer to X Register
         Function:    X = S
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.x_reg = self.sp_reg
         self._set_flag(CPU.FLAGS.Z, self.x_reg == 0x00)
@@ -705,7 +705,7 @@ class CPU:
         """
         Instruction: Transfer X Register to Accumulator
         Function:    A = X
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.a_reg = self.x_reg
         self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
@@ -724,7 +724,7 @@ class CPU:
         """
         Instruction: Transfer Y Register to Accumulator
         Function:    A = Y
-        Flags Out:   N, Z
+        Flags Out:   Z, N
         """
         self.a_reg = self.y_reg
         self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
