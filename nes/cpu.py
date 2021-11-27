@@ -573,9 +573,26 @@ class CPU:
         return 0
 
     def _JMP(self) -> int:
+        """
+        Instruction: Jump to Another Location
+        Function:    PC = address
+        """
+        self.pc_reg = self._addr_abs
         return 0
 
     def _JSR(self) -> int:
+        """
+        Instruction: Jump to a Subroutine
+        Function:    PC -> Stack, PC = address
+        """
+        self.pc_reg -= 1
+
+        self._write(0x0100 + self.sp_reg, (self.pc_reg >> 8) & 0x00FF)
+        self.sp_reg -= 1
+        self._write(0x0100 + self.sp_reg, self.pc_reg & 0x00FF)
+        self.sp_reg -= 1
+
+        self.pc_reg = self._addr_abs
         return 0
 
     def _LDA(self) -> int:
@@ -730,6 +747,15 @@ class CPU:
         return 0
 
     def _RTS(self) -> int:
+        """
+        Instruction: Return from Subroutine
+        Function:    PC <- Stack
+        """
+        self.sp_reg += 1
+        self.pc_reg = self._read(0x0100 + self.sp_reg)
+        self.sp_reg += 1
+        self.pc_reg |= self._read(0x0100 + self.sp_reg) << 8
+        self.pc_reg += 1
         return 0
 
     def _SBC(self) -> int:
