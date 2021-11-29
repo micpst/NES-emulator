@@ -500,6 +500,7 @@ class CPU:
         """
         Instruction: Clear Carry Flag
         Function:    C = 0
+        Flags out:   C
         """
         self._set_flag(CPU.FLAGS.C, False)
         return 0
@@ -508,6 +509,7 @@ class CPU:
         """
         Instruction: Clear Decimal Mode
         Function:    D = 0
+        Flags out:   D
         """
         self._set_flag(CPU.FLAGS.D, False)
         return 0
@@ -516,6 +518,7 @@ class CPU:
         """
         Instruction: Clear Interrupt Disable
         Function:    I = 0
+        Flags out:   I
         """
         self._set_flag(CPU.FLAGS.I, False)
         return 0
@@ -524,6 +527,7 @@ class CPU:
         """
         Instruction: Clear Overflow Flag
         Function:    V = 0
+        Flags out:   V
         """
         self._set_flag(CPU.FLAGS.V, False)
         return 0
@@ -856,6 +860,7 @@ class CPU:
         """
         Instruction: Set Carry Flag
         Function:    C = 1
+        Flags out:   C
         """
         self._set_flag(CPU.FLAGS.C, True)
         return 0
@@ -864,6 +869,7 @@ class CPU:
         """
         Instruction: Set Decimal Mode
         Function:    D = 1
+        Flags out:   D
         """
         self._set_flag(CPU.FLAGS.D, True)
         return 0
@@ -872,6 +878,7 @@ class CPU:
         """
         Instruction: Set Interrupt Disable
         Function:    I = 1
+        Flags out:   I
         """
         self._set_flag(CPU.FLAGS.I, True)
         return 0
