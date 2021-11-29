@@ -100,9 +100,8 @@ class CPU:
         Forces CPU into known state.
         """
         # Read new program counter location from fixed address:
-        self._address = 0xFFFC
-        l = self._read(self._address + 0)
-        h = self._read(self._address + 1)
+        l = self._read(0xFFFC)
+        h = self._read(0xFFFD)
         self.pc_reg = (h << 8) | l
 
         # Reset internal registers:
@@ -136,9 +135,8 @@ class CPU:
             self.sp_reg -= 1
 
             # Read new program counter location from fixed address:
-            self._address = 0xFFFE
-            l = self._read(self._address + 0)
-            h = self._read(self._address + 1)
+            l = self._read(0xFFFE)
+            h = self._read(0xFFFF)
             self.pc_reg = (h << 8) | l
 
             # IRQs take time:
@@ -164,9 +162,8 @@ class CPU:
         self.sp_reg -= 1
 
         # Read new program counter location from fixed address:
-        self._address = 0xFFFA
-        l = self._read(self._address + 0)
-        h = self._read(self._address + 1)
+        l = self._read(0xFFFA)
+        h = self._read(0xFFFB)
         self.pc_reg = (h << 8) | l
 
         # IRQs take time:
@@ -246,10 +243,15 @@ class CPU:
         """
         self._address = self._read(self.pc_reg)
         self.pc_reg += 1
+
         if self._address & 0x80:
             self._address |= 0xFF00
+
         self._address += self.pc_reg
-        return 2
+
+        if (self._address & 0xFF00) != (self.pc_reg & 0xFF00):
+            return 2
+        return 1
 
     def _ABS(self) -> int:
         """
@@ -405,11 +407,8 @@ class CPU:
         Function:    PC = address <- C == 0
         """
         if not self._get_flag(CPU.FLAGS.C):
-            h = self.pc_reg & 0xFF00
-            self.pc_reg = self._address        
-            if (self.pc_reg & 0xFF00) != h:
-                return 2
-            return 1
+            self.pc_reg = self._address
+            return 2
         return 0
 
     def _BCS(self) -> int:
@@ -418,11 +417,8 @@ class CPU:
         Function:    PC = address <- C == 1
         """
         if self._get_flag(CPU.FLAGS.C):
-            h = self.pc_reg & 0xFF00
-            self.pc_reg = self._address        
-            if (self.pc_reg & 0xFF00) != h:
-                return 2
-            return 1
+            self.pc_reg = self._address
+            return 2
         return 0
 
     def _BEQ(self) -> int:
@@ -431,11 +427,8 @@ class CPU:
         Function:    PC = address <- Z == 1
         """
         if self._get_flag(CPU.FLAGS.Z):
-            h = self.pc_reg & 0xFF00
-            self.pc_reg = self._address        
-            if (self.pc_reg & 0xFF00) != h:
-                return 2
-            return 1
+            self.pc_reg = self._address
+            return 2
         return 0
 
     def _BIT(self) -> int:
@@ -456,11 +449,8 @@ class CPU:
         Function:    PC = address <- N == 1
         """
         if self._get_flag(CPU.FLAGS.N):
-            h = self.pc_reg & 0xFF00
-            self.pc_reg = self._address        
-            if (self.pc_reg & 0xFF00) != h:
-                return 2
-            return 1
+            self.pc_reg = self._address
+            return 2
         return 0
 
     def _BNE(self) -> int:
@@ -469,11 +459,8 @@ class CPU:
         Function:    PC = address <- Z == 0
         """
         if not self._get_flag(CPU.FLAGS.Z):
-            h = self.pc_reg & 0xFF00
-            self.pc_reg = self._address        
-            if (self.pc_reg & 0xFF00) != h:
-                return 2
-            return 1
+            self.pc_reg = self._address
+            return 2
         return 0
 
     def _BPL(self) -> int:
@@ -482,11 +469,8 @@ class CPU:
         Function:    PC = address <- N == 0
         """
         if not self._get_flag(CPU.FLAGS.N):
-            h = self.pc_reg & 0xFF00
-            self.pc_reg = self._address        
-            if (self.pc_reg & 0xFF00) != h:
-                return 2
-            return 1
+            self.pc_reg = self._address
+            return 2
         return 0
 
     def _BRK(self) -> int:
@@ -498,11 +482,8 @@ class CPU:
         Function:    PC = address <- V == 0
         """
         if not self._get_flag(CPU.FLAGS.V):
-            h = self.pc_reg & 0xFF00
-            self.pc_reg = self._address        
-            if (self.pc_reg & 0xFF00) != h:
-                return 2
-            return 1
+            self.pc_reg = self._address
+            return 2
         return 0
 
     def _BVS(self) -> int:
@@ -511,11 +492,8 @@ class CPU:
         Function:    PC = address <- V == 1
         """
         if self._get_flag(CPU.FLAGS.V):
-            h = self.pc_reg & 0xFF00
-            self.pc_reg = self._address        
-            if (self.pc_reg & 0xFF00) != h:
-                return 2
-            return 1
+            self.pc_reg = self._address
+            return 2
         return 0
 
     def _CLC(self) -> int:
