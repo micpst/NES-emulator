@@ -16,14 +16,14 @@ class CPU:
         """
         The status register flags.
         """
-        C = 1 << 0    # Carry Bit
-        Z = 1 << 1    # Zero
-        I = 1 << 2    # Disable Interrupts
-        D = 1 << 3    # Decimal Mode
-        B = 1 << 4    # Break
-        U = 1 << 5    # Unused
-        V = 1 << 6    # Overflow
-        N = 1 << 7    # Negative
+        C = 1 << 0  # Carry Flag
+        Z = 1 << 1  # Zero Flag
+        I = 1 << 2  # Interrupt Disable
+        D = 1 << 3  # Decimal Mode
+        B = 1 << 4  # Break Command
+        U = 1 << 5  # Unused
+        V = 1 << 6  # Overflow Flag
+        N = 1 << 7  # Negative Flag
 
     class INSTRUCTION(NamedTuple):
         """
@@ -41,14 +41,13 @@ class CPU:
         self.y_reg: int = 0x00
         self.sp_reg: int = 0xFD
         self.pc_reg: int = 0x0000
-        self.status_reg: int = 0x00 | CPU.FLAGS.U.value | CPU.FLAGS.I.value
+        self.status_reg: int = 0x34
 
         # Helper variables:
-        self._addr_abs: int = 0x0000 # All used memory addresses
-        self._addr_rel: int = 0x0000 # Absolute address following a branch
-        self._opcode: int = 0x00     # Instruction byte
-        self._cycles: int = 0        # Instruction remaining cycles
-        self._clock_count: int = 0   # Global accumulation of the number of clocks
+        self._address: int = 0x0000 # Memory address
+        self._opcode: int = 0x00    # Instruction byte
+        self._cycles: int = 0       # Instruction remaining cycles
+        self._clock_count: int = 0  # Global accumulation of the number of clocks
 
         self._lookup: List[CPU.INSTRUCTION] = [
             CPU.INSTRUCTION("BRK", self._BRK, self._IMM, 7), CPU.INSTRUCTION("ORA", self._ORA, self._IZX, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8), CPU.INSTRUCTION("???", self._NOP, self._IMP, 3), CPU.INSTRUCTION("ORA", self._ORA, self._ZP0, 3), CPU.INSTRUCTION("ASL", self._ASL, self._ZP0, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5), CPU.INSTRUCTION("PHP", self._PHP, self._IMP, 3), CPU.INSTRUCTION("ORA", self._ORA, self._IMM, 2), CPU.INSTRUCTION("ASL", self._ASL, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("ORA", self._ORA, self._ABS, 4), CPU.INSTRUCTION("ASL", self._ASL, self._ABS, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6),
@@ -101,9 +100,9 @@ class CPU:
         Forces CPU into known state.
         """
         # Read new program counter location from fixed address:
-        self._addr_abs = 0xFFFC
-        l = self._read(self._addr_abs + 0)
-        h = self._read(self._addr_abs + 1)
+        self._address = 0xFFFC
+        l = self._read(self._address + 0)
+        h = self._read(self._address + 1)
         self.pc_reg = (h << 8) | l
 
         # Reset internal registers:
@@ -111,11 +110,7 @@ class CPU:
         self.x_reg = 0x00
         self.y_reg = 0x00
         self.sp_reg = 0xFD
-        self.status_reg = 0x00 | CPU.FLAGS.U.value | CPU.FLAGS.I.value
-
-        # Clear helper variables:
-        self._addr_abs = 0x0000
-        self._addr_rel = 0x0000
+        self.status_reg = 0x34
 
         # Reset takes time:
         self._cycles = 8
@@ -141,9 +136,9 @@ class CPU:
             self.sp_reg -= 1
 
             # Read new program counter location from fixed address:
-            self._addr_abs = 0xFFFE
-            l = self._read(self._addr_abs + 0)
-            h = self._read(self._addr_abs + 1)
+            self._address = 0xFFFE
+            l = self._read(self._address + 0)
+            h = self._read(self._address + 1)
             self.pc_reg = (h << 8) | l
 
             # IRQs take time:
@@ -169,9 +164,9 @@ class CPU:
         self.sp_reg -= 1
 
         # Read new program counter location from fixed address:
-        self._addr_abs = 0xFFFA
-        l = self._read(self._addr_abs + 0)
-        h = self._read(self._addr_abs + 1)
+        self._address = 0xFFFA
+        l = self._read(self._address + 0)
+        h = self._read(self._address + 1)
         self.pc_reg = (h << 8) | l
 
         # IRQs take time:
@@ -210,7 +205,7 @@ class CPU:
         Address Mode: Immediate
         The instruction expects the next byte to be used as a value.
         """
-        self._addr_abs = self.pc_reg
+        self._address = self.pc_reg
         self.pc_reg += 1
         return 0
 
@@ -219,9 +214,9 @@ class CPU:
         Address Mode: Zero Page
         Allows to absolutely address a location in first 0xFF bytes of address range.
         """
-        self._addr_abs = self._read(self.pc_reg)
+        self._address = self._read(self.pc_reg)
         self.pc_reg += 1
-        self._addr_abs &= 0x00FF
+        self._address &= 0x00FF
         return 0
 
     def _ZPX(self) -> int:
@@ -229,9 +224,9 @@ class CPU:
         Address Mode: Zero Page with X offset
         Same as ZP0, but the contents of the X register is added to the given 8-bit address.
         """
-        self._addr_abs = self._read(self.pc_reg) + self.x_reg
+        self._address = self._read(self.pc_reg) + self.x_reg
         self.pc_reg += 1
-        self._addr_abs &= 0x00FF
+        self._address &= 0x00FF
         return 0
 
     def _ZPY(self) -> int:
@@ -239,9 +234,9 @@ class CPU:
         Address Mode: Zero Page with Y offset
         Same as ZPX, but uses Y register to offset.
         """
-        self._addr_abs = self._read(self.pc_reg) + self.y_reg
+        self._address = self._read(self.pc_reg) + self.y_reg
         self.pc_reg += 1
-        self._addr_abs &= 0x00FF
+        self._address &= 0x00FF
         return 0
 
     def _REL(self) -> int:
@@ -249,11 +244,12 @@ class CPU:
         Address Mode: Relative
         The address must reside within -128 and 127 of the branch instruction.
         """
-        self._addr_rel = self._read(self.pc_reg)
+        self._address = self._read(self.pc_reg)
         self.pc_reg += 1
-        if self._addr_rel & 0x80:
-            self._addr_rel |= 0xFF00
-        return 0
+        if self._address & 0x80:
+            self._address |= 0xFF00
+        self._address += self.pc_reg
+        return 2
 
     def _ABS(self) -> int:
         """
@@ -264,7 +260,7 @@ class CPU:
         self.pc_reg += 1
         h = self._read(self.pc_reg)
         self.pc_reg += 1
-        self._addr_abs = (h << 8) | l
+        self._address = (h << 8) | l
         return 0
 
     def _ABX(self) -> int:
@@ -277,10 +273,10 @@ class CPU:
         h = self._read(self.pc_reg)
         self.pc_reg += 1
 
-        self._addr_abs = (h << 8) | l
-        self._addr_abs += self.x_reg
+        self._address = (h << 8) | l
+        self._address += self.x_reg
 
-        if (self._addr_abs & 0xFF00) != (h << 8):
+        if (self._address & 0xFF00) != (h << 8):
             return 1
         return 0
 
@@ -294,10 +290,10 @@ class CPU:
         h = self._read(self.pc_reg)
         self.pc_reg += 1
 
-        self._addr_abs = (h << 8) | l
-        self._addr_abs += self.y_reg
+        self._address = (h << 8) | l
+        self._address += self.y_reg
 
-        if (self._addr_abs & 0xFF00) != (h << 8):
+        if (self._address & 0xFF00) != (h << 8):
             return 1
         return 0
 
@@ -314,10 +310,10 @@ class CPU:
 
         if l == 0x00FF:
             # Simulate page boundary harware bug:
-            self._addr_abs = (self._read(ptr & 0xFF00) << 8) | self._read(ptr)
+            self._address = (self._read(ptr & 0xFF00) << 8) | self._read(ptr)
         else:
             # Behave normally:
-            self._addr_abs = (self._read(ptr + 1) << 8) | self._read(ptr)
+            self._address = (self._read(ptr + 1) << 8) | self._read(ptr)
         return 0
 
     def _IZX(self) -> int:
@@ -331,7 +327,7 @@ class CPU:
 
         l = self._read(t & 0x00FF)
         h = self._read((t + 1) & 0x00FF)
-        self._addr_abs = (h << 8) | l
+        self._address = (h << 8) | l
         return 0
 
     def _IZY(self) -> int:
@@ -345,9 +341,9 @@ class CPU:
 
         l = self._read(t & 0x00FF)
         h = self._read((t + 1) & 0x00FF)
-        self._addr_abs = ((h << 8) | l) + self.y_reg
+        self._address = ((h << 8) | l) + self.y_reg
 
-        if (self._addr_abs & 0xFF00) != (h << 8):
+        if (self._address & 0xFF00) != (h << 8):
             return 1
         return 0
 
@@ -357,7 +353,7 @@ class CPU:
         Function:    A = A + M + C
         Flags Out:   C, Z, V, N
         """
-        m = self._read(self._addr_abs)
+        m = self._read(self._address)
         temp = self.a_reg + m + self._get_flag(CPU.FLAGS.C)
 
         self._set_flag(CPU.FLAGS.C, temp > 0xFF)
@@ -376,7 +372,7 @@ class CPU:
         Function:    A = A & M
         Flags Out:   Z, N
         """
-        self.a_reg &= self._read(self._addr_abs)
+        self.a_reg &= self._read(self._address)
         self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
         self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
         return 1
@@ -388,7 +384,7 @@ class CPU:
         Flags Out:   C, Z, N
         """
         a_mode = self._lookup[self._opcode].address_mode != self._IMP
-        m = self.a_reg if a_mode else self._read(self._addr_abs)
+        m = self.a_reg if a_mode else self._read(self._address)
 
         m <<= 1
         self._set_flag(CPU.FLAGS.C, (m & 0xFF00) > 0)
@@ -400,16 +396,46 @@ class CPU:
         if a_mode:
             self.a_reg = m
         else:
-            self._write(self._addr_abs, m)
+            self._write(self._address, m)
         return 0
 
     def _BCC(self) -> int:
+        """
+        Instruction: Branch if Carry Clear
+        Function:    PC = address <- C == 0
+        """
+        if not self._get_flag(CPU.FLAGS.C):
+            h = self.pc_reg & 0xFF00
+            self.pc_reg = self._address        
+            if (self.pc_reg & 0xFF00) != h:
+                return 2
+            return 1
         return 0
 
     def _BCS(self) -> int:
+        """
+        Instruction: Branch if Carry Set
+        Function:    PC = address <- C == 1
+        """
+        if self._get_flag(CPU.FLAGS.C):
+            h = self.pc_reg & 0xFF00
+            self.pc_reg = self._address        
+            if (self.pc_reg & 0xFF00) != h:
+                return 2
+            return 1
         return 0
 
     def _BEQ(self) -> int:
+        """
+        Instruction: Branch if Equal
+        Function:    PC = address <- Z == 1
+        """
+        if self._get_flag(CPU.FLAGS.Z):
+            h = self.pc_reg & 0xFF00
+            self.pc_reg = self._address        
+            if (self.pc_reg & 0xFF00) != h:
+                return 2
+            return 1
         return 0
 
     def _BIT(self) -> int:
@@ -418,28 +444,78 @@ class CPU:
         Function:    A & M, V = M6, N = M7
         Flags Out:   N, V, Z
         """
-        m = self._read(self._addr_abs)
+        m = self._read(self._address)
         self._set_flag(CPU.FLAGS.Z, (self.a_reg & m) == 0x00)
         self._set_flag(CPU.FLAGS.V, (m & 0x40) > 0)
         self._set_flag(CPU.FLAGS.N, (m & 0x80) > 0)
         return 0
 
     def _BMI(self) -> int:
+        """
+        Instruction: Branch if Negative
+        Function:    PC = address <- N == 1
+        """
+        if self._get_flag(CPU.FLAGS.N):
+            h = self.pc_reg & 0xFF00
+            self.pc_reg = self._address        
+            if (self.pc_reg & 0xFF00) != h:
+                return 2
+            return 1
         return 0
 
     def _BNE(self) -> int:
+        """
+        Instruction: Branch if Not Equal
+        Function:    PC = address <- Z == 0
+        """
+        if not self._get_flag(CPU.FLAGS.Z):
+            h = self.pc_reg & 0xFF00
+            self.pc_reg = self._address        
+            if (self.pc_reg & 0xFF00) != h:
+                return 2
+            return 1
         return 0
 
     def _BPL(self) -> int:
+        """
+        Instruction: Branch if Positive
+        Function:    PC = address <- N == 0
+        """
+        if not self._get_flag(CPU.FLAGS.N):
+            h = self.pc_reg & 0xFF00
+            self.pc_reg = self._address        
+            if (self.pc_reg & 0xFF00) != h:
+                return 2
+            return 1
         return 0
 
     def _BRK(self) -> int:
         return 0
 
     def _BVC(self) -> int:
+        """
+        Instruction: Branch if Overflow Clear
+        Function:    PC = address <- V == 0
+        """
+        if not self._get_flag(CPU.FLAGS.V):
+            h = self.pc_reg & 0xFF00
+            self.pc_reg = self._address        
+            if (self.pc_reg & 0xFF00) != h:
+                return 2
+            return 1
         return 0
 
     def _BVS(self) -> int:
+        """
+        Instruction: Branch if Overflow Set
+        Function:    PC = address <- V == 1
+        """
+        if self._get_flag(CPU.FLAGS.V):
+            h = self.pc_reg & 0xFF00
+            self.pc_reg = self._address        
+            if (self.pc_reg & 0xFF00) != h:
+                return 2
+            return 1
         return 0
 
     def _CLC(self) -> int:
@@ -460,7 +536,7 @@ class CPU:
         Function:    Z <- (A - M) == 0
         Flags Out:   C, Z, N
         """
-        m = self._read(self._addr_abs)
+        m = self._read(self._address)
         temp = (self.a_reg - m) & 0x00FF
         self._set_flag(CPU.FLAGS.C, self.a_reg >= m)
         self._set_flag(CPU.FLAGS.Z, temp == 0x00)
@@ -473,7 +549,7 @@ class CPU:
         Function:    Z <- (X - M) == 0
         Flags Out:   C, Z, N
         """
-        m = self._read(self._addr_abs)
+        m = self._read(self._address)
         temp = (self.x_reg - m) & 0x00FF
         self._set_flag(CPU.FLAGS.C, self.x_reg >= m)
         self._set_flag(CPU.FLAGS.Z, temp == 0x00)
@@ -486,7 +562,7 @@ class CPU:
         Function:    Z <- (Y - M) == 0
         Flags Out:   C, Z, N
         """
-        m = self._read(self._addr_abs)
+        m = self._read(self._address)
         temp = (self.y_reg - m) & 0x00FF
         self._set_flag(CPU.FLAGS.C, self.y_reg >= m)
         self._set_flag(CPU.FLAGS.Z, temp == 0x00)
@@ -499,8 +575,8 @@ class CPU:
         Function:    M = M - 1
         Flags Out:   Z, N
         """
-        m = (self._read(self._addr_abs) - 1) & 0x00FF
-        self._write(self._addr_abs, m)
+        m = (self._read(self._address) - 1) & 0x00FF
+        self._write(self._address, m)
         self._set_flag(CPU.FLAGS.Z, m == 0x00)
         self._set_flag(CPU.FLAGS.N, (m & 0x80) > 0)
         return 0
@@ -533,7 +609,7 @@ class CPU:
         Function:    A = A ^ M
         Flags Out:   Z, N
         """
-        self.a_reg ^= self._read(self._addr_abs)
+        self.a_reg ^= self._read(self._address)
         self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
         self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
         return 1
@@ -544,8 +620,8 @@ class CPU:
         Function:    M = M + 1
         Flags Out:   Z, N
         """
-        m = (self._read(self._addr_abs) + 1) & 0x00FF
-        self._write(self._addr_abs, m)
+        m = (self._read(self._address) + 1) & 0x00FF
+        self._write(self._address, m)
         self._set_flag(CPU.FLAGS.Z, m == 0x00)
         self._set_flag(CPU.FLAGS.N, (m & 0x80) > 0)
         return 0
@@ -577,7 +653,7 @@ class CPU:
         Instruction: Jump to Another Location
         Function:    PC = address
         """
-        self.pc_reg = self._addr_abs
+        self.pc_reg = self._address
         return 0
 
     def _JSR(self) -> int:
@@ -592,7 +668,7 @@ class CPU:
         self._write(0x0100 + self.sp_reg, self.pc_reg & 0x00FF)
         self.sp_reg -= 1
 
-        self.pc_reg = self._addr_abs
+        self.pc_reg = self._address
         return 0
 
     def _LDA(self) -> int:
@@ -601,7 +677,7 @@ class CPU:
         Function:    A = M
         Flags Out:   Z, N
         """
-        self.a_reg = self._read(self._addr_abs)
+        self.a_reg = self._read(self._address)
         self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
         self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
         return 1
@@ -612,7 +688,7 @@ class CPU:
         Function:    X = M
         Flags Out:   Z, N
         """
-        self.x_reg = self._read(self._addr_abs)
+        self.x_reg = self._read(self._address)
         self._set_flag(CPU.FLAGS.Z, self.x_reg == 0x00)
         self._set_flag(CPU.FLAGS.N, (self.x_reg & 0x80) > 0)
         return 1
@@ -623,7 +699,7 @@ class CPU:
         Function:    Y = M
         Flags Out:   Z, N
         """
-        self.y_reg = self._read(self._addr_abs)
+        self.y_reg = self._read(self._address)
         self._set_flag(CPU.FLAGS.Z, self.y_reg == 0x00)
         self._set_flag(CPU.FLAGS.N, (self.y_reg & 0x80) > 0)
         return 1
@@ -635,7 +711,7 @@ class CPU:
         Flags Out:   C, Z, N
         """
         a_mode = self._lookup[self._opcode].address_mode != self._IMP
-        m = self.a_reg if a_mode else self._read(self._addr_abs)
+        m = self.a_reg if a_mode else self._read(self._address)
         self._set_flag(CPU.FLAGS.C, (m & 0x0001) > 0)
 
         m = (m >> 1) & 0x00FF
@@ -645,7 +721,7 @@ class CPU:
         if a_mode:
             self.a_reg = m
         else:
-            self._write(self._addr_abs, m)
+            self._write(self._address, m)
         return 0
 
     def _NOP(self) -> int:
@@ -657,7 +733,7 @@ class CPU:
         Function:    A = A | M
         Flags Out:   Z, N
         """
-        self.a_reg |= self._read(self._addr_abs)
+        self.a_reg |= self._read(self._address)
         self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
         self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
         return 1
@@ -707,7 +783,7 @@ class CPU:
         Flags Out:   C, Z, N
         """
         a_mode = self._lookup[self._opcode].address_mode != self._IMP
-        m = self.a_reg if a_mode else self._read(self._addr_abs)
+        m = self.a_reg if a_mode else self._read(self._address)
 
         m = (m << 1) | self._get_flag(CPU.FLAGS.C)
         self._set_flag(CPU.FLAGS.C, (m & 0xFF00) > 0)
@@ -719,7 +795,7 @@ class CPU:
         if a_mode:
             self.a_reg = m
         else:
-            self._write(self._addr_abs, m)
+            self._write(self._address, m)
         return 0
 
     def _ROR(self) -> int:
@@ -728,7 +804,7 @@ class CPU:
         Flags Out:   C, Z, N
         """
         a_mode = self._lookup[self._opcode].address_mode != self._IMP
-        m = self.a_reg if a_mode else self._read(self._addr_abs)
+        m = self.a_reg if a_mode else self._read(self._address)
 
         temp = (self._get_flag(CPU.FLAGS.C) << 7) | (m >> 1)
         self._set_flag(CPU.FLAGS.C, (m & 0x0001) > 0)
@@ -740,7 +816,7 @@ class CPU:
         if a_mode:
             self.a_reg = temp
         else:
-            self._write(self._addr_abs, temp)
+            self._write(self._address, temp)
         return 0
 
     def _RTI(self) -> int:
@@ -764,7 +840,7 @@ class CPU:
         Function:    A = A - M - (1 - C)
         Flags Out:   C, Z, V, N
         """
-        m = self._read(self._addr_abs) ^ 0x00FF
+        m = self._read(self._address) ^ 0x00FF
         temp = self.a_reg + m + self._get_flag(CPU.FLAGS.C)
 
         self._set_flag(CPU.FLAGS.C, temp > 0xFF)
@@ -792,7 +868,7 @@ class CPU:
         Instruction: Store A Register at Address
         Function:    M = A
         """
-        self._write(self._addr_abs, self.a_reg)
+        self._write(self._address, self.a_reg)
         return 0
 
     def _STX(self) -> int:
@@ -800,7 +876,7 @@ class CPU:
         Instruction: Store X Register at Address
         Function:    M = X
         """
-        self._write(self._addr_abs, self.x_reg)
+        self._write(self._address, self.x_reg)
         return 0
 
     def _STY(self) -> int:
@@ -808,7 +884,7 @@ class CPU:
         Instruction: Store Y Register at Address
         Function:    M = Y
         """
-        self._write(self._addr_abs, self.y_reg)
+        self._write(self._address, self.y_reg)
         return 0
 
     def _TAX(self) -> int:
