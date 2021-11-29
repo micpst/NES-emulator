@@ -519,15 +519,35 @@ class CPU:
         return 0
 
     def _CLC(self) -> int:
+        """
+        Instruction: Clear Carry Flag
+        Function:    C = 0
+        """
+        self._set_flag(CPU.FLAGS.C, False)
         return 0
 
     def _CLD(self) -> int:
+        """
+        Instruction: Clear Decimal Mode
+        Function:    D = 0
+        """
+        self._set_flag(CPU.FLAGS.D, False)
         return 0
 
     def _CLI(self) -> int:
+        """
+        Instruction: Clear Interrupt Disable
+        Function:    I = 0
+        """
+        self._set_flag(CPU.FLAGS.I, False)
         return 0
 
     def _CLV(self) -> int:
+        """
+        Instruction: Clear Overflow Flag
+        Function:    V = 0
+        """
+        self._set_flag(CPU.FLAGS.V, False)
         return 0
 
     def _CMP(self) -> int:
@@ -855,12 +875,27 @@ class CPU:
         return 1
 
     def _SEC(self) -> int:
+        """
+        Instruction: Set Carry Flag
+        Function:    C = 1
+        """
+        self._set_flag(CPU.FLAGS.C, True)
         return 0
 
     def _SED(self) -> int:
+        """
+        Instruction: Set Decimal Mode
+        Function:    D = 1
+        """
+        self._set_flag(CPU.FLAGS.D, True)
         return 0
 
     def _SEI(self) -> int:
+        """
+        Instruction: Set Interrupt Disable
+        Function:    I = 1
+        """
+        self._set_flag(CPU.FLAGS.I, True)
         return 0
 
     def _STA(self) -> int:
