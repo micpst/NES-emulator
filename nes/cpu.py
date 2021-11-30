@@ -474,6 +474,25 @@ class CPU:
         return 0
 
     def _BRK(self) -> int:
+        """
+        Instruction: Force Interrupt
+        Function:    Program Sourced Interrupt
+        Flags out:   B
+        """
+        self.pc_reg += 1
+
+        self._write(0x0100 + self.sp_reg, (self.pc_reg >> 8) & 0x00FF)
+        self.sp_reg -= 1
+        self._write(0x0100 + self.sp_reg, self.pc_reg & 0x00FF)
+        self.sp_reg -= 1
+
+        self._set_flag(CPU.FLAGS.B, True)
+        self._write(0x0100 + self.sp_reg, self.status_reg)
+        self.sp_reg -= 1
+
+        l = self._read(0xFFFE)
+        h = self._read(0xFFFF)
+        self.pc_reg = (h << 8) | l
         return 0
 
     def _BVC(self) -> int:
@@ -727,6 +746,12 @@ class CPU:
         return 0
 
     def _NOP(self) -> int:
+        """
+        Instruction: No Operation
+        """
+        # None of the unofficial opcodes have been implemented yet.
+        # Details on unofficial op codes here:
+        # https://wiki.nesdev.org/w/index.php/CPU_unofficial_opcodes
         return 0
 
     def _ORA(self) -> int:
@@ -822,6 +847,17 @@ class CPU:
         return 0
 
     def _RTI(self) -> int:
+        """
+        Instruction: Return from Interrupt
+        Function:    Status <- Stack, PC <- Stack
+        Flags Out:   All
+        """
+        self.sp_reg += 1
+        self.status_reg = self._read(0x0100 + self.sp_reg)  
+        self.sp_reg += 1
+        self.pc_reg = self._read(0x0100 + self.sp_reg)
+        self.sp_reg += 1
+        self.pc_reg |= self._read(0x0100 + self.sp_reg) << 8
         return 0
 
     def _RTS(self) -> int:
