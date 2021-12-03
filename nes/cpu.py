@@ -100,9 +100,8 @@ class CPU:
         Forces CPU into known state.
         """
         # Read new program counter location from fixed address:
-        l = self._read(0xFFFC)
-        h = self._read(0xFFFD)
-        self.pc_reg = (h << 8) | l
+        self.pc_reg = self._read(0xFFFC)
+        self.pc_reg |= self._read(0xFFFD) << 8
 
         # Reset internal registers:
         self.a_reg = 0x00
@@ -135,9 +134,8 @@ class CPU:
             self.sp_reg -= 1
 
             # Read new program counter location from fixed address:
-            l = self._read(0xFFFE)
-            h = self._read(0xFFFF)
-            self.pc_reg = (h << 8) | l
+            self.pc_reg = self._read(0xFFFE)
+            self.pc_reg |= self._read(0xFFFF) << 8
 
             # IRQs take time:
             self._cycles = 7
@@ -162,9 +160,8 @@ class CPU:
         self.sp_reg -= 1
 
         # Read new program counter location from fixed address:
-        l = self._read(0xFFFA)
-        h = self._read(0xFFFB)
-        self.pc_reg = (h << 8) | l
+        self.pc_reg = self._read(0xFFFA)
+        self.pc_reg |= self._read(0xFFFB) << 8
 
         # IRQs take time:
         self._cycles = 8
@@ -187,7 +184,6 @@ class CPU:
 
         self._clock_count += 1
         self._cycles -= 1
-
         return self._cycles
 
     def _IMP(self) -> int:
@@ -258,11 +254,10 @@ class CPU:
         Address Mode: Absolute
         A full 16-bit address is loaded and used.
         """
-        l = self._read(self.pc_reg)
+        self._address = self._read(self.pc_reg)
         self.pc_reg += 1
-        h = self._read(self.pc_reg)
+        self._address |= self._read(self.pc_reg) << 8
         self.pc_reg += 1
-        self._address = (h << 8) | l
         return 0
 
     def _ABX(self) -> int:
@@ -270,15 +265,15 @@ class CPU:
         Address Mode: Absolute with X offset
         Same as ABS, but the contents of the X register is added to the given 16-bit address.
         """
-        l = self._read(self.pc_reg)
+        self._address = self._read(self.pc_reg)
         self.pc_reg += 1
-        h = self._read(self.pc_reg)
+        self._address |= self._read(self.pc_reg) << 8
         self.pc_reg += 1
 
-        self._address = (h << 8) | l
+        h = self._address & 0xFF00
         self._address += self.x_reg
 
-        if (self._address & 0xFF00) != (h << 8):
+        if (self._address & 0xFF00) != h:
             return 1
         return 0
 
@@ -287,15 +282,15 @@ class CPU:
         Address Mode: Absolute with Y offset
         Same as ABX, but uses Y register to offset.
         """
-        l = self._read(self.pc_reg)
+        self._address = self._read(self.pc_reg)
         self.pc_reg += 1
-        h = self._read(self.pc_reg)
+        self._address |= self._read(self.pc_reg) << 8
         self.pc_reg += 1
 
-        self._address = (h << 8) | l
+        h = self._address & 0xFF00
         self._address += self.y_reg
 
-        if (self._address & 0xFF00) != (h << 8):
+        if (self._address & 0xFF00) != h:
             return 1
         return 0
 
@@ -304,18 +299,14 @@ class CPU:
         Address mode: Indirect
         The supplied 16-bit address is read to get the actual 16-bit address.
         """
-        l = self._read(self.pc_reg)
+        ptr = self._read(self.pc_reg)
         self.pc_reg += 1
-        h = self._read(self.pc_reg)
+        ptr |= self._read(self.pc_reg) << 8
         self.pc_reg += 1
-        ptr = (h << 8) | l
 
-        if l == 0x00FF:
-            # Simulate page boundary harware bug:
-            self._address = (self._read(ptr & 0xFF00) << 8) | self._read(ptr)
-        else:
-            # Behave normally:
-            self._address = (self._read(ptr + 1) << 8) | self._read(ptr)
+        self._address = self._read(ptr)
+        self._address |= (self._read(ptr & 0xFF00) if (ptr & 0x00FF) == 0x00FF
+                          else self._read(ptr + 1)) << 8
         return 0
 
     def _IZX(self) -> int:
@@ -324,12 +315,11 @@ class CPU:
         The supplied 8-bit address is offset by X register to index a location in page 0x00.
         The actual 16-bit address is read from this location.
         """
-        t = self._read(self.pc_reg) + self.x_reg
+        ptr = self._read(self.pc_reg) + self.x_reg
         self.pc_reg += 1
 
-        l = self._read(t & 0x00FF)
-        h = self._read((t + 1) & 0x00FF)
-        self._address = (h << 8) | l
+        self._address = self._read(ptr & 0x00FF)
+        self._address |= self._read((ptr + 1) & 0x00FF) << 8
         return 0
 
     def _IZY(self) -> int:
@@ -338,14 +328,16 @@ class CPU:
         The supplied 8-bit address indexes a location in page 0x00.
         The actual 16-bit address is read and Y register is added to it to offset it.
         """
-        t = self._read(self.pc_reg)
+        ptr = self._read(self.pc_reg)
         self.pc_reg += 1
 
-        l = self._read(t & 0x00FF)
-        h = self._read((t + 1) & 0x00FF)
-        self._address = ((h << 8) | l) + self.y_reg
+        self._address = self._read(ptr & 0x00FF)
+        self._address |= self._read((ptr + 1) & 0x00FF) << 8
 
-        if (self._address & 0xFF00) != (h << 8):
+        h = self._address & 0xFF00
+        self._address += self.y_reg
+
+        if (self._address & 0xFF00) != h:
             return 1
         return 0
 
@@ -357,10 +349,7 @@ class CPU:
         """
         m = self._read(self._address)
         temp = self.a_reg + m + self._get_flag(CPU.FLAGS.C)
-
         self._set_flag(CPU.FLAGS.C, temp > 0xFF)
-
-        # Not sure if it works - has to be tested
         self._set_flag(CPU.FLAGS.V, ((~(self.a_reg ^ m) & (self.a_reg ^ temp)) & 0x0080) > 0)
 
         self.a_reg = temp & 0x00FF
@@ -490,9 +479,8 @@ class CPU:
         self._write(0x0100 + self.sp_reg, self.status_reg)
         self.sp_reg -= 1
 
-        l = self._read(0xFFFE)
-        h = self._read(0xFFFF)
-        self.pc_reg = (h << 8) | l
+        self.pc_reg = self._read(0xFFFE)
+        self.pc_reg |= self._read(0xFFFF) << 8
         return 0
 
     def _BVC(self) -> int:
@@ -853,7 +841,7 @@ class CPU:
         Flags Out:   All
         """
         self.sp_reg += 1
-        self.status_reg = self._read(0x0100 + self.sp_reg)  
+        self.status_reg = self._read(0x0100 + self.sp_reg)
         self.sp_reg += 1
         self.pc_reg = self._read(0x0100 + self.sp_reg)
         self.sp_reg += 1
@@ -880,14 +868,10 @@ class CPU:
         """
         m = self._read(self._address) ^ 0x00FF
         temp = self.a_reg + m + self._get_flag(CPU.FLAGS.C)
-
         self._set_flag(CPU.FLAGS.C, temp > 0xFF)
-
-        # Not sure if it works - has to be tested
         self._set_flag(CPU.FLAGS.V, ((~(self.a_reg ^ m) & (self.a_reg ^ temp)) & 0x0080) > 0)
 
         self.a_reg = temp & 0x00FF
-
         self._set_flag(CPU.FLAGS.Z, self.a_reg == 0x00)
         self._set_flag(CPU.FLAGS.N, (self.a_reg & 0x80) > 0)
         return 1
