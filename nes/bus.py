@@ -1,5 +1,5 @@
 from typing import List
-import numpy as np
+
 
 class Bus:
     """
@@ -10,8 +10,8 @@ class Bus:
         from .cpu import CPU
         
         # Devices on the bus:
-        self.cpu : CPU = CPU()
-        self.ram : List[int] = [0x00] * 1024 * 64 # fake RAM for now
+        self.cpu: CPU = CPU()
+        self.ram: List[int] = [0x00] * 1024 * 64  # fake RAM for now
         
         # Connect CPU to the bus:
         self.cpu.connect_bus(self)
