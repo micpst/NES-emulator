@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from ..cartridge import Cartridge
 
 
 class Mapper(metaclass=ABCMeta):
@@ -8,17 +9,9 @@ class Mapper(metaclass=ABCMeta):
         self.chr_banks: int = chr_banks
 
     @abstractmethod
-    def cpu_map_read(self, address: int, mapped_address: int) -> bool:
-        return False
+    def map_read(self, address: int) -> int:
+        pass
 
     @abstractmethod
-    def cpu_map_write(self, address: int, mapped_address: int) -> bool:
-        return False
-
-    @abstractmethod
-    def ppu_map_read(self, address: int, mapped_address: int) -> bool:
-        return False
-
-    @abstractmethod
-    def ppu_map_write(self, address: int, mapped_address: int) -> bool:
-        return False
+    def map_write(self, address: int, data: int) -> int:
+        pass

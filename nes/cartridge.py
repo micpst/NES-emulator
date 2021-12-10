@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional, Type
 
 from nes.mappers.mapper import Mapper
 from nes.mappers.mapper_000 import Mapper000
@@ -6,7 +6,7 @@ from nes.mappers.mapper_000 import Mapper000
 
 class Cartridge:
 
-    mappers: Dict[int, Mapper] = {
+    mappers: Dict[int, Type[Mapper]] = {
         0: Mapper000,
     }
 
@@ -18,8 +18,7 @@ class Cartridge:
         self.prg_memory: List[int] = []
         self.chr_memory: List[int] = []
 
-        self.mapper_id: int = 0
-        self.mapper: Mapper = None
+        self.mapper: Optional[Mapper] = None
         self.valid_image: bool = False
 
         try:
@@ -39,10 +38,6 @@ class Cartridge:
                 if mapper_1 & 0x04:
                     f.seek(512, 1)
 
-                # Determine mapper id:
-                self.mapper_id = ((mapper_2 >> 4) << 4) | (mapper_1 >> 4)
-                # self.mirror = () if mapper_1 & 0x01 else ()
-
                 # Get program and character memory:
                 self.prg_banks = prg_rom_chunks
                 self.prg_memory = list(f.read(self.prg_banks * 16384))
@@ -50,8 +45,28 @@ class Cartridge:
                 self.chr_memory = list(f.read(self.chr_banks * 8192))
 
                 # Load appropriate mapper:
-                self.mapper = self.mappers[self.mapper_id](self.prg_banks, self.chr_banks)
+                mapper_id: int = ((mapper_2 >> 4) << 4) | (mapper_1 >> 4)
+                self.mapper = self.mappers[mapper_id](self.prg_banks, self.chr_banks)
                 self.valid_image = True
 
         except OSError:
             pass
+
+    def read(self, address: int) -> int:
+        if self.mapper:
+            mapped_address = self.mapper.map_read(address)
+            if 0x0000 <= address <= 0x1FFF:
+                return self.chr_memory[mapped_address]
+
+            if 0x8000 <= address <= 0xFFFF:
+                return self.prg_memory[mapped_address]
+        return 0x00
+
+    def write(self, address: int, data: int) -> None:
+        if self.mapper:
+            mapped_address = self.mapper.map_write(address, data)
+            if 0x0000 <= address <= 0x1FFF:
+                self.chr_memory[mapped_address] = data
+
+            elif 0x8000 <= address <= 0xFFFF:
+                self.prg_memory[mapped_address] = data
