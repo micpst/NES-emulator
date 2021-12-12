@@ -1,5 +1,4 @@
 from .mapper import Mapper
-from ..cartridge import Cartridge
 
 
 class Mapper000(Mapper):

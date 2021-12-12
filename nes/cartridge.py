@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Type
 
-from nes.mappers.mapper import Mapper
-from nes.mappers.mapper_000 import Mapper000
+from .mappers.mapper import Mapper
+from .mappers.mapper_000 import Mapper000
 
 
 class Cartridge:
@@ -55,18 +55,20 @@ class Cartridge:
     def read(self, address: int) -> int:
         if self.mapper:
             mapped_address = self.mapper.map_read(address)
-            if 0x0000 <= address <= 0x1FFF:
-                return self.chr_memory[mapped_address]
+            if mapped_address != -0x0001:
+                if 0x0000 <= address <= 0x1FFF:
+                    return self.chr_memory[mapped_address]
 
-            if 0x8000 <= address <= 0xFFFF:
-                return self.prg_memory[mapped_address]
+                if 0x8000 <= address <= 0xFFFF:
+                    return self.prg_memory[mapped_address]
         return 0x00
 
     def write(self, address: int, data: int) -> None:
         if self.mapper:
             mapped_address = self.mapper.map_write(address, data)
-            if 0x0000 <= address <= 0x1FFF:
-                self.chr_memory[mapped_address] = data
+            if mapped_address != -0x0001:
+                if 0x0000 <= address <= 0x1FFF:
+                    self.chr_memory[mapped_address] = data
 
-            elif 0x8000 <= address <= 0xFFFF:
-                self.prg_memory[mapped_address] = data
+                elif 0x8000 <= address <= 0xFFFF:
+                    self.prg_memory[mapped_address] = data

@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractmethod
-from ..cartridge import Cartridge
 
 
 class Mapper(metaclass=ABCMeta):
