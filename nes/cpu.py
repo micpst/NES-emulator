@@ -297,6 +297,97 @@ class CPU:
         self._cycles -= 1
         return self._cycles
 
+    def disassemble(self, start_address: int, stop_address: int) -> List[str]:
+        """
+        Disassembly function converts the desired chunk of program memory into human-readable code.
+        Used for debugging.
+        """
+        disassembled_memory: List[str] = []
+        address: int = start_address
+
+        # Memory decoding:
+        while address <= stop_address:
+            # Read instruction and get its readable name:
+            opcode: int = self._read(address, True)
+            instruction: str = f"${format(address, '04x')}: {self._lookup[opcode].name} "
+            operand: int = 0
+            address += 1
+
+            #  Get operands from desired locations and form the instruction:
+            if self._lookup[opcode].address_mode == self._ACC:
+                instruction += "A"
+
+            elif self._lookup[opcode].address_mode == self._IMM:
+                operand = self._read(address, True)
+                address += 1
+                instruction += f"#{format(operand, '02x')}"
+
+            elif self._lookup[opcode].address_mode == self._ZP0:
+                operand = self._read(address, True)
+                address += 1
+                instruction += f"${format(operand, '02x')}"
+
+            elif self._lookup[opcode].address_mode == self._ZPX:
+                operand = self._read(address, True)
+                address += 1
+                instruction += f"${format(operand, '02x')}, X"
+
+            elif self._lookup[opcode].address_mode == self._ZPY:
+                operand = self._read(address, True)
+                address += 1
+                instruction += f"${format(operand, '02x')}, Y"
+
+            elif self._lookup[opcode].address_mode == self._REL:
+                operand = self._read(address, True)
+                address += 1
+                instruction += f"#{format(operand, '02x')}"
+
+            elif self._lookup[opcode].address_mode == self._ABS:
+                operand = self._read(address, True)
+                address += 1
+                operand |= self._read(address, True) << 8
+                address += 1
+                instruction += f"${format(operand, '04x')}"
+
+            elif self._lookup[opcode].address_mode == self._ABX:
+                operand = self._read(address, True)
+                address += 1
+                operand |= self._read(address, True) << 8
+                address += 1
+                instruction += f"${format(operand, '04x')}, X"
+
+            elif self._lookup[opcode].address_mode == self._ABY:
+                operand = self._read(address, True)
+                address += 1
+                operand |= self._read(address, True) << 8
+                address += 1
+                instruction += f"${format(operand, '04x')}, Y"
+
+            elif self._lookup[opcode].address_mode == self._IND:
+                operand = self._read(address, True)
+                address += 1
+                operand |= self._read(address, True) << 8
+                address += 1
+                instruction += f"(${format(operand, '04x')})"
+
+            elif self._lookup[opcode].address_mode == self._IZX:
+                operand = self._read(address, True)
+                address += 1
+                operand |= self._read(address, True) << 8
+                address += 1
+                instruction += f"(${format(operand, '04x')}), X"
+
+            elif self._lookup[opcode].address_mode == self._IZY:
+                operand = self._read(address, True)
+                address += 1
+                operand |= self._read(address, True) << 8
+                address += 1
+                instruction += f"(${format(operand, '04x')}), Y"
+
+            disassembled_memory.append(instruction)
+
+        return disassembled_memory
+
     def _IMP(self) -> int:
         """
         Address Mode: Implied
