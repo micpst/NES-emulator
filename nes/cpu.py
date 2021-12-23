@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Callable, List, NamedTuple
+from typing import Callable, Dict, List, NamedTuple
 
 from .bus import Bus
 
@@ -54,7 +54,7 @@ class CPU:
             CPU.INSTRUCTION("???", self._NOP, self._IMP, 3), CPU.INSTRUCTION("ORA", self._ORA, self._ZP0, 3),
             CPU.INSTRUCTION("ASL", self._ASL, self._ZP0, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5),
             CPU.INSTRUCTION("PHP", self._PHP, self._IMP, 3), CPU.INSTRUCTION("ORA", self._ORA, self._IMM, 2),
-            CPU.INSTRUCTION("ASL", self._ASL, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2),
+            CPU.INSTRUCTION("ASL", self._ASL, self._ACC, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2),
             CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("ORA", self._ORA, self._ABS, 4),
             CPU.INSTRUCTION("ASL", self._ASL, self._ABS, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6),
             CPU.INSTRUCTION("BPL", self._BPL, self._REL, 2), CPU.INSTRUCTION("ORA", self._ORA, self._IZY, 5),
@@ -70,7 +70,7 @@ class CPU:
             CPU.INSTRUCTION("BIT", self._BIT, self._ZP0, 3), CPU.INSTRUCTION("AND", self._AND, self._ZP0, 3),
             CPU.INSTRUCTION("ROL", self._ROL, self._ZP0, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5),
             CPU.INSTRUCTION("PLP", self._PLP, self._IMP, 4), CPU.INSTRUCTION("AND", self._AND, self._IMM, 2),
-            CPU.INSTRUCTION("ROL", self._ROL, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2),
+            CPU.INSTRUCTION("ROL", self._ROL, self._ACC, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2),
             CPU.INSTRUCTION("BIT", self._BIT, self._ABS, 4), CPU.INSTRUCTION("AND", self._AND, self._ABS, 4),
             CPU.INSTRUCTION("ROL", self._ROL, self._ABS, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6),
             CPU.INSTRUCTION("BMI", self._BMI, self._REL, 2), CPU.INSTRUCTION("AND", self._AND, self._IZY, 5),
@@ -86,7 +86,7 @@ class CPU:
             CPU.INSTRUCTION("???", self._NOP, self._IMP, 3), CPU.INSTRUCTION("EOR", self._EOR, self._ZP0, 3),
             CPU.INSTRUCTION("LSR", self._LSR, self._ZP0, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5),
             CPU.INSTRUCTION("PHA", self._PHA, self._IMP, 3), CPU.INSTRUCTION("EOR", self._EOR, self._IMM, 2),
-            CPU.INSTRUCTION("LSR", self._LSR, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2),
+            CPU.INSTRUCTION("LSR", self._LSR, self._ACC, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2),
             CPU.INSTRUCTION("JMP", self._JMP, self._ABS, 3), CPU.INSTRUCTION("EOR", self._EOR, self._ABS, 4),
             CPU.INSTRUCTION("LSR", self._LSR, self._ABS, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6),
             CPU.INSTRUCTION("BVC", self._BVC, self._REL, 2), CPU.INSTRUCTION("EOR", self._EOR, self._IZY, 5),
@@ -102,7 +102,7 @@ class CPU:
             CPU.INSTRUCTION("???", self._NOP, self._IMP, 3), CPU.INSTRUCTION("ADC", self._ADC, self._ZP0, 3),
             CPU.INSTRUCTION("ROR", self._ROR, self._ZP0, 5), CPU.INSTRUCTION("???", self._XXX, self._IMP, 5),
             CPU.INSTRUCTION("PLA", self._PLA, self._IMP, 4), CPU.INSTRUCTION("ADC", self._ADC, self._IMM, 2),
-            CPU.INSTRUCTION("ROR", self._ROR, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2),
+            CPU.INSTRUCTION("ROR", self._ROR, self._ACC, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 2),
             CPU.INSTRUCTION("JMP", self._JMP, self._IND, 5), CPU.INSTRUCTION("ADC", self._ADC, self._ABS, 4),
             CPU.INSTRUCTION("ROR", self._ROR, self._ABS, 6), CPU.INSTRUCTION("???", self._XXX, self._IMP, 6),
             CPU.INSTRUCTION("BVS", self._BVS, self._REL, 2), CPU.INSTRUCTION("ADC", self._ADC, self._IZY, 5),
@@ -191,11 +191,11 @@ class CPU:
         """
         self.status_reg ^= (-value ^ self.status_reg) & flag.value
 
-    def _read(self, address: int) -> int:
+    def _read(self, address: int, read_only: bool = False) -> int:
         """
         Reads a byte from the bus at the specified address.
         """
-        return self._bus.read(address)
+        return self._bus.read(address, read_only)
 
     def _write(self, address: int, value: int) -> None:
         """
@@ -287,8 +287,8 @@ class CPU:
             self.pc_reg += 1
 
             # Fetch intermediate data and perform the operation:
-            extra_cycle1 = self._lookup[self._opcode].address_mode()
-            extra_cycle2 = self._lookup[self._opcode].operate()
+            extra_cycle1: int = self._lookup[self._opcode].address_mode()
+            extra_cycle2: int = self._lookup[self._opcode].operate()
 
             # Set the required number of cycles:
             self._cycles = self._lookup[self._opcode].cycles + (extra_cycle1 & extra_cycle2)
@@ -301,6 +301,13 @@ class CPU:
         """
         Address Mode: Implied
         There is no additional data required for this instruction.
+        """
+        return 0
+
+    def _ACC(self) -> int:
+        """
+        Address Mode: Accumulator
+        Allows directly target the accumulator.
         """
         return 0
 
@@ -485,7 +492,7 @@ class CPU:
         Function:    A = A * 2, M = M * 2
         Flags Out:   C, Z, N
         """
-        a_mode = self._lookup[self._opcode].address_mode != self._IMP
+        a_mode = self._lookup[self._opcode].address_mode == self._ACC
         m = self.a_reg if a_mode else self._read(self._address)
 
         m <<= 1
@@ -830,7 +837,7 @@ class CPU:
         Function:    A = A / 2, M = M / 2
         Flags Out:   C, Z, N
         """
-        a_mode = self._lookup[self._opcode].address_mode != self._IMP
+        a_mode = self._lookup[self._opcode].address_mode == self._ACC
         m = self.a_reg if a_mode else self._read(self._address)
         self._set_flag(CPU.FLAGS.C, (m & 0x0001) > 0)
 
@@ -908,7 +915,7 @@ class CPU:
         Instruction: Rotate Left
         Flags Out:   C, Z, N
         """
-        a_mode = self._lookup[self._opcode].address_mode != self._IMP
+        a_mode = self._lookup[self._opcode].address_mode == self._ACC
         m = self.a_reg if a_mode else self._read(self._address)
 
         m = (m << 1) | self._get_flag(CPU.FLAGS.C)
@@ -929,7 +936,7 @@ class CPU:
         Instruction: Rotate Right
         Flags Out:   C, Z, N
         """
-        a_mode = self._lookup[self._opcode].address_mode != self._IMP
+        a_mode = self._lookup[self._opcode].address_mode == self._ACC
         m = self.a_reg if a_mode else self._read(self._address)
 
         temp = (self._get_flag(CPU.FLAGS.C) << 7) | (m >> 1)
