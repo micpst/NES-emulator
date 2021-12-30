@@ -6,6 +6,8 @@ from .mappers.mapper_000 import Mapper000
 
 class Cartridge:
 
+    __slots__ = ("file_path", "prg_banks", "chr_banks", "prg_memory", "chr_memory", "mapper", "valid_image")
+
     mappers: Dict[int, Type[Mapper]] = {
         0: Mapper000,
     }

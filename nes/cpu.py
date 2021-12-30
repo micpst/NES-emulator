@@ -11,6 +11,9 @@ class CPU:
     An emulation of the 6502/2A03 processor.
     """
 
+    __slots__ = ("a_reg", "x_reg", "y_reg", "sp_reg", "pc_reg", "status_reg",
+                 "_bus", "_address", "_opcode", "_cycles", "_clock_count", "_lookup")
+
     class FLAGS(Enum):
         """
         The status register flags.
@@ -295,6 +298,7 @@ class CPU:
 
         self._clock_count += 1
         self._cycles -= 1
+
         return self._cycles
 
     def disassemble(self, start_address: int, stop_address: int) -> List[str]:

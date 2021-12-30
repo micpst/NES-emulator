@@ -6,7 +6,9 @@ class Bus:
     """
     NES - System Bus.
     """
-    
+
+    __slots__ = ("cpu", "ppu", "ram", "cart", "_system_clock_count")
+
     def __init__(self) -> None:
         from .cpu import CPU
         from .ppu import PPU

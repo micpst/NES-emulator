@@ -1,3 +1,4 @@
+import random
 import pygame as pg
 from typing import Optional, List, Tuple
 from .cartridge import Cartridge
@@ -8,11 +9,26 @@ class PPU:
     An emulation of the 2C02 picture processing unit.
     """
 
+    __slots__ = ("name_table", "pattern_table", "palette_table", "cart", "frame_complete", "screen",
+                 "_cycles", "_scanline", "_clock_count", "_colors")
+
     def __init__(self) -> None:
         # PPU bus:
         self.name_table: List[List[int]] = 2 * [1024 * [0x00]]
         self.pattern_table: List[List[int]] = 2 * [4096 * [0x00]]
-        self.palette_table: List[Tuple[int, int, int]] = [
+        self.palette_table: List[int] = 32 * [0x00]
+        self.cart: Optional[Cartridge] = None
+
+        # For the purpose of emulation:
+        self.frame_complete: bool = False
+        self.screen: pg.Surface = pg.Surface((341, 261))
+
+        # Helper variables:
+        self._cycles: int = 0
+        self._scanline: int = 0
+        self._clock_count: int = 0
+
+        self._colors: List[Tuple[int, int, int]] = [
             ( 84,  84,  84),
             (  0,  30, 116),
             (  8,  16, 144),
@@ -81,18 +97,14 @@ class PPU:
             (  0,   0,   0),
             (  0,   0,   0),
         ]
-        self.cart: Optional[Cartridge] = None
-
-        # Helper variables:
-        self._cycles: int = 0
-        self._clock_count: int = 0
-        self._scanline: int = 0
-        self._frame_complete: bool = False
 
     def connect_cartridge(self, cart: Cartridge) -> None:
         self.cart = cart
 
     def clock(self) -> None:
+        # Produce some noise:
+        self.screen.set_at((self._cycles - 1, self._scanline), self._colors[random.choice((0x3F, 0x30))])
+
         self._clock_count += 1
         self._cycles += 1
 
@@ -102,7 +114,7 @@ class PPU:
 
             if self._scanline >= 261:
                 self._scanline = -1
-                self._frame_complete = True
+                self.frame_complete = True
 
     def write(self, address: int, data: int) -> None:
         if address == 0x0000:
