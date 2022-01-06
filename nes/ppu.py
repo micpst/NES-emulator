@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import random
-import pygame as pg
 from enum import Enum
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Sequence
+from pygame import Surface
 from .cartridge import Cartridge
 
 
@@ -18,14 +20,14 @@ class PPU:
         """
         The controller register flags.
         """
-        X = 1 << 0
-        Y = 1 << 1
-        IM = 1 << 2
-        PB = 1 << 3
-        PS = 1 << 4
-        SS = 1 << 5
-        SM = 1 << 6
-        N = 1 << 7
+        NX  = 1 << 0  # Nametable X
+        NY  = 1 << 1  # Nametable Y
+        IM  = 1 << 2  # Increment mode
+        PS  = 1 << 3  # Pattern sprite
+        PB  = 1 << 4  # Pattern background
+        SS  = 1 << 5  # Sprite size
+        MSS = 1 << 6  # Master/Slave select
+        NMI = 1 << 7  # Enable NMI
 
     class MASK(Enum):
         """
@@ -44,9 +46,9 @@ class PPU:
         """
         The status register flags.
         """
-        SO = 1 << 5
-        SZH = 1 << 6
-        VB = 1 << 7
+        SO = 1 << 5  # Sprite overflow
+        SH = 1 << 6  # Sprite 0 hit
+        VB = 1 << 7  # Vertical blank
 
     def __init__(self) -> None:
         # PPU internal registers:
@@ -62,15 +64,15 @@ class PPU:
 
         # For the purpose of emulation:
         self.frame_complete: bool = False
-        self.screen: pg.Surface = pg.Surface((341, 261))
-        self.patterns: List[pg.Surface] = [pg.Surface((128, 128)), pg.Surface((128, 128))]
+        self.screen: Surface = Surface((341, 261))
+        self.patterns: Tuple[Surface, Surface] = (Surface((128, 128)), Surface((128, 128)))
 
         # Helper variables:
         self._cycles: int = 0
         self._scanline: int = 0
         self._clock_count: int = 0
 
-        self._colors: List[Tuple[int, int, int]] = [
+        self._colors: Sequence[Tuple[int, int, int]] = (
             ( 84,  84,  84), (  0,  30, 116), (  8,  16, 144), ( 48,   0, 136),
             ( 68,   0, 100), ( 92,   0,  48), ( 84,   4,   0), ( 60,  24,   0),
             ( 32,  42,   0), (  8,  58,   0), (  0,  64,   0), (  0,  60,   0),
@@ -90,7 +92,19 @@ class PPU:
             (236, 174, 236), (236, 174, 212), (236, 180, 176), (228, 196, 144),
             (204, 210, 120), (180, 222, 120), (168, 226, 144), (152, 226, 180),
             (160, 214, 228), (160, 162, 160), (  0,   0,   0), (  0,   0,   0),
-        ]
+        )
+
+    def _get_flag(self, register: str, flag: PPU.CONTROLLER | PPU.MASK | PPU.STATUS) -> bool:
+        """
+        Returns the state of a specific bit of the register.
+        """
+        return (getattr(self, register) & flag.value) > 0
+
+    def _set_flag(self, register: str, flag: PPU.CONTROLLER | PPU.MASK | PPU.STATUS, value: bool) -> None:
+        """
+        Sets or resets a specific bit of the register.
+        """
+        setattr(self, register, getattr(self, register) ^ (-value ^ getattr(self, register)) & flag.value)
 
     def connect_cartridge(self, cart: Cartridge) -> None:
         self.cart = cart
@@ -112,10 +126,10 @@ class PPU:
 
     def write(self, address: int, data: int) -> None:
         if address == 0x0000:
-            pass
+            self.controller_reg = data
 
         elif address == 0x0001:
-            pass
+            self.mask_reg = data
 
         elif address == 0x0002:
             pass
@@ -135,15 +149,15 @@ class PPU:
         elif address == 0x0007:
             pass
 
-    def read(self, address: int, read_only: bool) -> int:
-        if address == 0x0000:
-            pass
+    def read(self, address: int, read_only: bool = False) -> int:
+        if address == 0x0000 and read_only:
+            return self.controller_reg
 
-        elif address == 0x0001:
-            pass
+        if address == 0x0001 and read_only:
+            return self.mask_reg
 
-        elif address == 0x0002:
-            pass
+        if address == 0x0002 and read_only:
+            return self.status_reg
 
         elif address == 0x0003:
             pass
@@ -169,25 +183,52 @@ class PPU:
             self.pattern_table[(address & 0x1000) >> 12][address & 0x0FFF] = data
 
         elif 0x2000 <= address <= 0x3EFF:
-            pass
+            address &= 0x0FFF
+            if self.cart.mirror == Cartridge.MIRROR.HORIZONTAL:
+                if 0x0000 <= address <= 0x07FF:
+                    self.name_table[0][address & 0x03FF] = data
+                elif 0x0800 <= address <= 0x0FFF:
+                    self.name_table[1][address & 0x03FF] = data
+
+            elif self.cart.mirror == Cartridge.MIRROR.VERTICAL:
+                if 0x0000 <= address <= 0x03FF or 0x0800 <= address <= 0x0BFF:
+                    self.name_table[0][address & 0x03FF] = data
+                elif 0x0400 <= address <= 0x07FF or 0x0C00 <= address <= 0x0FFF:
+                    self.name_table[1][address & 0x03FF] = data
 
         elif 0x3F00 <= address <= 0x3FFF:
-            pass
+            address &= 0x1F
+            if address in (0x10, 0x14, 0x18, 0x1C):
+                address &= 0xF
+            self.palette_table[address] = data
 
         elif self.cart:
             self.cart.write(address & 0x3FFF, data)
 
-    def _read(self, address: int, read_only: bool) -> int:
+    def _read(self, address: int, read_only: bool = False) -> int:
         address &= 0x3FFF
 
         if 0x0000 <= address <= 0x1FFF:
             return self.pattern_table[(address & 0x1000) >> 12][address & 0x0FFF]
 
-        elif 0x2000 <= address <= 0x3EFF:
-            pass
+        if 0x2000 <= address <= 0x3EFF:
+            address &= 0x0FFF
+            if self.cart.mirror == Cartridge.MIRROR.HORIZONTAL:
+                if 0x0000 <= address <= 0x07FF:
+                    return self.name_table[0][address & 0x03FF]
+                if 0x0800 <= address <= 0x0FFF:
+                    return self.name_table[1][address & 0x03FF]
 
-        elif 0x3F00 <= address <= 0x3FFF:
-            address &= 0xF if (address & 0x1F) in (0x10, 0x14, 0x18, 0x1C) else 0x1F
+            if self.cart.mirror == Cartridge.MIRROR.VERTICAL:
+                if 0x0000 <= address <= 0x03FF or 0x0800 <= address <= 0x0BFF:
+                    return self.name_table[0][address & 0x03FF]
+                if 0x0400 <= address <= 0x07FF or 0x0C00 <= address <= 0x0FFF:
+                    return self.name_table[1][address & 0x03FF]
+
+        if 0x3F00 <= address <= 0x3FFF:
+            address &= 0x1F
+            if address in (0x10, 0x14, 0x18, 0x1C):
+                address &= 0xF
             return self.palette_table[address]
 
         return self.cart.read(address & 0x3FFF) if self.cart else 0x00
