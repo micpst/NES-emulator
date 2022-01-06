@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Dict, List, Optional, Type
 
 from .mappers.mapper import Mapper
@@ -6,11 +7,15 @@ from .mappers.mapper_000 import Mapper000
 
 class Cartridge:
 
-    __slots__ = ("file_path", "prg_banks", "chr_banks", "prg_memory", "chr_memory", "mapper", "valid_image")
+    __slots__ = ("file_path", "prg_banks", "chr_banks", "prg_memory", "chr_memory", "mapper", "mirror", "valid_image")
 
     mappers: Dict[int, Type[Mapper]] = {
         0: Mapper000,
     }
+
+    class MIRROR(Enum):
+        HORIZONTAL = 0
+        VERTICAL = 1
 
     def __init__(self, file_path: str) -> None:
         self.file_path: str = file_path
@@ -21,6 +26,7 @@ class Cartridge:
         self.chr_memory: List[int] = []
 
         self.mapper: Optional[Mapper] = None
+        self.mirror: Cartridge.MIRROR = Cartridge.MIRROR.HORIZONTAL
         self.valid_image: bool = False
 
         try:
@@ -49,6 +55,8 @@ class Cartridge:
                 # Load appropriate mapper:
                 mapper_id: int = ((mapper_2 >> 4) << 4) | (mapper_1 >> 4)
                 self.mapper = self.mappers[mapper_id](self.prg_banks, self.chr_banks)
+
+                self.mirror = Cartridge.MIRROR.VERTICAL if mapper_1 & 0x01 else Cartridge.MIRROR.HORIZONTAL
                 self.valid_image = True
 
         except OSError:
