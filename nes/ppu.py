@@ -1,9 +1,10 @@
 from __future__ import annotations
-
 import random
+
 from enum import Enum
-from typing import Optional, List, Tuple, Sequence
+from typing import Optional, List, Tuple
 from pygame import Surface
+
 from .cartridge import Cartridge
 
 
@@ -12,7 +13,7 @@ class PPU:
     An emulation of the 2C02 picture processing unit.
     """
 
-    __slots__ = ("controller_reg", "mask_reg", "status_reg",
+    __slots__ = ("controller_reg", "mask_reg", "status_reg", "address_reg", "data_reg",
                  "name_table", "pattern_table", "palette_table", "cart", "frame_complete", "screen", "patterns",
                  "_cycles", "_scanline", "_clock_count", "_colors")
 
@@ -55,6 +56,8 @@ class PPU:
         self.controller_reg: int = 0x00
         self.mask_reg: int = 0x00
         self.status_reg: int = 0x00
+        self.address_reg: int = 0x00
+        self.data_reg: int = 0x00
 
         # PPU bus:
         self.name_table: List[List[int]] = 2 * [1024 * [0x00]]
@@ -72,7 +75,7 @@ class PPU:
         self._scanline: int = 0
         self._clock_count: int = 0
 
-        self._colors: Sequence[Tuple[int, int, int]] = (
+        self._colors: Tuple[Tuple[int, int, int], ...] = (
             ( 84,  84,  84), (  0,  30, 116), (  8,  16, 144), ( 48,   0, 136),
             ( 68,   0, 100), ( 92,   0,  48), ( 84,   4,   0), ( 60,  24,   0),
             ( 32,  42,   0), (  8,  58,   0), (  0,  64,   0), (  0,  60,   0),
@@ -96,20 +99,39 @@ class PPU:
 
     def _get_flag(self, register: str, flag: PPU.CONTROLLER | PPU.MASK | PPU.STATUS) -> bool:
         """
-        Returns the state of a specific bit of the register.
+        Returns the state of a specific bit of the requested register.
         """
         return (getattr(self, register) & flag.value) > 0
 
     def _set_flag(self, register: str, flag: PPU.CONTROLLER | PPU.MASK | PPU.STATUS, value: bool) -> None:
         """
-        Sets or resets a specific bit of the register.
+        Sets or resets a specific bit of the requested register.
         """
         setattr(self, register, getattr(self, register) ^ (-value ^ getattr(self, register)) & flag.value)
 
     def connect_cartridge(self, cart: Cartridge) -> None:
+        """
+        Connects the cartridge to the PPU bus.
+        """
         self.cart = cart
 
+    def reset(self) -> None:
+        """
+        Forces PPU into known state.
+        """
+        self.controller_reg = 0x00
+        self.mask_reg = 0x00
+        self.status_reg = 0x00
+        self.address_reg = 0x00
+        self.data_reg = 0x00
+
+        self._cycles = 0
+        self._scanline = 0
+
     def clock(self) -> None:
+        """
+        Performs one clock cycle's worth of update.
+        """
         # Produce some noise:
         self.screen.set_at((self._cycles - 1, self._scanline), self._colors[random.choice((0x3F, 0x30))])
 
@@ -125,64 +147,100 @@ class PPU:
                 self.frame_complete = True
 
     def write(self, address: int, data: int) -> None:
+        """
+        Writes a byte to the specified PPU register.
+        """
+        # PPU controller register:
         if address == 0x0000:
             self.controller_reg = data
 
+        # PPU mask register:
         elif address == 0x0001:
             self.mask_reg = data
 
+        # PPU status register:
         elif address == 0x0002:
             pass
 
+        # OAM address port
         elif address == 0x0003:
             pass
 
+        # OAM data port
         elif address == 0x0004:
             pass
 
+        # PPU scrolling position register:
         elif address == 0x0005:
             pass
 
+        # PPU address register:
         elif address == 0x0006:
             pass
 
+        # PPU data port:
         elif address == 0x0007:
-            pass
+            self._write(self.address_reg, data)
+            self.address_reg += 32 if self._get_flag("controller_reg", PPU.CONTROLLER.IM) else 1
 
     def read(self, address: int, read_only: bool = False) -> int:
+        """
+        Reads a byte from the specified PPU register.
+        """
+        # PPU controller register:
         if address == 0x0000 and read_only:
             return self.controller_reg
 
+        # PPU mask register:
         if address == 0x0001 and read_only:
             return self.mask_reg
 
-        if address == 0x0002 and read_only:
-            return self.status_reg
+        # PPU status register:
+        if address == 0x0002:
+            if read_only:
+                return self.status_reg
 
-        elif address == 0x0003:
+            temp = (self.status_reg & 0xE0) | (self.data_reg & 0x1F)
+            self._set_flag("status_reg", PPU.STATUS.VB, False)
+            return temp
+
+        # OAM address port
+        if address == 0x0003:
             pass
 
-        elif address == 0x0004:
+        # OAM data port
+        if address == 0x0004:
             pass
 
-        elif address == 0x0005:
+        # PPU scrolling position register:
+        if address == 0x0005:
             pass
 
-        elif address == 0x0006:
+        # PPU address register:
+        if address == 0x0006:
             pass
 
-        elif address == 0x0007:
-            pass
+        # PPU data port:
+        if address == 0x0007 and not read_only:
+            temp = self.data_reg
+            self.data_reg = self._read(self.address_reg)
+            if self.address_reg >= 0x3F00:
+                temp = self.data_reg
+            self.address_reg += 32 if self._get_flag("controller_reg", PPU.CONTROLLER.IM) else 1
+            return temp
 
         return 0x00
 
     def _write(self, address: int, data: int) -> None:
+        """
+        Enables writing to the PPU bus.
+        """
         address &= 0x3FFF
 
         if 0x0000 <= address <= 0x1FFF:
             self.pattern_table[(address & 0x1000) >> 12][address & 0x0FFF] = data
 
-        elif 0x2000 <= address <= 0x3EFF:
+        elif 0x2000 <= address <= 0x3EFF and self.cart:
             address &= 0x0FFF
             if self.cart.mirror == Cartridge.MIRROR.HORIZONTAL:
                 if 0x0000 <= address <= 0x07FF:
@@ -206,12 +264,15 @@ class PPU:
             self.cart.write(address & 0x3FFF, data)
 
     def _read(self, address: int, read_only: bool = False) -> int:
+        """
+        Enables reading from the PPU bus.
+        """
         address &= 0x3FFF
 
         if 0x0000 <= address <= 0x1FFF:
             return self.pattern_table[(address & 0x1000) >> 12][address & 0x0FFF]
 
-        if 0x2000 <= address <= 0x3EFF:
+        if 0x2000 <= address <= 0x3EFF and self.cart:
             address &= 0x0FFF
             if self.cart.mirror == Cartridge.MIRROR.HORIZONTAL:
                 if 0x0000 <= address <= 0x07FF:

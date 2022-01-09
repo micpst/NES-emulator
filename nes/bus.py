@@ -26,14 +26,24 @@ class Bus:
         self.cpu.connect_bus(self)
 
     def insert_cartridge(self, cart: Cartridge) -> None:
+        """
+        Connects the cartridge to the main bus and the PPU bus.
+        """
         self.cart = cart
         self.ppu.connect_cartridge(cart)
 
     def reset(self) -> None:
+        """
+        Resets main bus peripherals.
+        """
         self.cpu.reset()
+        self.ppu.reset()
         self._system_clock_count = 0
 
     def clock(self) -> None:
+        """
+        Performs one clock cycle's worth of update.
+        """
         self.ppu.clock()
         # The CPU runs 3 times slower than the PPU:
         if self._system_clock_count % 3 == 0:
@@ -41,6 +51,9 @@ class Bus:
         self._system_clock_count += 1
 
     def write(self, address: int, data: int) -> None:
+        """
+        Writes a byte to the main bus at the specified address.
+        """
         # System RAM address range - mirrored every 2 kilobytes:
         if 0x0000 <= address <= 0x1FFF:
             self.ram[address & 0x07FF] = data
@@ -54,6 +67,9 @@ class Bus:
             self.cart.write(address, data)
         
     def read(self, address: int, read_only: bool = False) -> int:
+        """
+        Reads a byte from the main bus at the specified address.
+        """
         # System RAM address range - mirrored every 2 kilobytes:
         if 0x0000 <= address <= 0x1FFF:
             return self.ram[address & 0x07FF]

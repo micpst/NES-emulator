@@ -6,6 +6,9 @@ from .mappers.mapper_000 import Mapper000
 
 
 class Cartridge:
+    """
+    An emulation of the cartridge board.
+    """
 
     __slots__ = ("file_path", "prg_banks", "chr_banks", "prg_memory", "chr_memory", "mapper", "mirror", "valid_image")
 

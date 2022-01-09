@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Callable, Dict, List, NamedTuple
+from typing import Callable, Dict, List, NamedTuple, Tuple
 
 from .bus import Bus
 
@@ -51,7 +51,7 @@ class CPU:
         self._cycles: int = 0        # Instruction remaining cycles
         self._clock_count: int = 0   # Global accumulation of the number of clocks
 
-        self._lookup: List[CPU.INSTRUCTION] = [
+        self._lookup: Tuple[CPU.INSTRUCTION, ...] = (
             CPU.INSTRUCTION("BRK", self._BRK, self._IMM, 7), CPU.INSTRUCTION("ORA", self._ORA, self._IZX, 6),
             CPU.INSTRUCTION("???", self._XXX, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 8),
             CPU.INSTRUCTION("???", self._NOP, self._IMP, 3), CPU.INSTRUCTION("ORA", self._ORA, self._ZP0, 3),
@@ -180,7 +180,7 @@ class CPU:
             CPU.INSTRUCTION("NOP", self._NOP, self._IMP, 2), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7),
             CPU.INSTRUCTION("???", self._NOP, self._IMP, 4), CPU.INSTRUCTION("SBC", self._SBC, self._ABX, 4),
             CPU.INSTRUCTION("INC", self._INC, self._ABX, 7), CPU.INSTRUCTION("???", self._XXX, self._IMP, 7),
-        ]
+        )
 
     def _get_flag(self, flag: CPU.FLAGS) -> bool:
         """
@@ -196,17 +196,20 @@ class CPU:
 
     def _read(self, address: int, read_only: bool = False) -> int:
         """
-        Reads a byte from the bus at the specified address.
+        Reads a byte from the main bus at the specified address.
         """
         return self._bus.read(address, read_only)
 
     def _write(self, address: int, value: int) -> None:
         """
-        Writes a byte to the bus at the specified address.
+        Writes a byte to the main bus at the specified address.
         """
         self._bus.write(address, value)
 
     def connect_bus(self, bus: Bus) -> None:
+        """
+        Connects the CPU to the main bus.
+        """
         self._bus: Bus = bus
 
     def reset(self) -> None:
@@ -282,7 +285,7 @@ class CPU:
 
     def clock(self) -> int:
         """
-        Perform one clock cycle's worth of update.
+        Performs one clock cycle's worth of update.
         """
         if self._cycles == 0:
             # Read next instruction byte:
@@ -303,7 +306,7 @@ class CPU:
 
     def disassemble(self, start_address: int, stop_address: int) -> List[str]:
         """
-        Disassembly function converts the desired chunk of program memory into human-readable code.
+        Converts the desired chunk of program memory into human-readable code.
         Used for debugging.
         """
         disassembled_memory: List[str] = []
