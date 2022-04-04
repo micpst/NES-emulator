@@ -65,6 +65,12 @@ class Cartridge:
         except OSError:
             pass
 
+    def get_read_map(self, address: int) -> bool:
+        return self.mapper.map_read(address) != -0x0001
+
+    def get_write_map(self, address: int) -> bool:
+        return self.mapper.map_write(address) != -0x0001
+
     def read(self, address: int) -> int:
         if self.mapper:
             mapped_address = self.mapper.map_read(address)
@@ -78,7 +84,7 @@ class Cartridge:
 
     def write(self, address: int, data: int) -> None:
         if self.mapper:
-            mapped_address = self.mapper.map_write(address, data)
+            mapped_address = self.mapper.map_write(address)
             if mapped_address != -0x0001:
                 if 0x0000 <= address <= 0x1FFF:
                     self.chr_memory[mapped_address] = data

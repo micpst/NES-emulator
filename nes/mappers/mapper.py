@@ -12,5 +12,5 @@ class Mapper(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def map_write(self, address: int, data: int) -> int:
+    def map_write(self, address: int) -> int:
         pass

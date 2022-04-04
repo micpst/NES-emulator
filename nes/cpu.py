@@ -283,7 +283,7 @@ class CPU:
         # IRQs take time:
         self._cycles = 8
 
-    def clock(self) -> int:
+    def clock(self) -> None:
         """
         Performs one clock cycle's worth of update.
         """
@@ -302,25 +302,32 @@ class CPU:
         self._clock_count += 1
         self._cycles -= 1
 
-        return self._cycles
+    def instruction_completed(self) -> bool:
+        """
+        Returns whether the current instruction has been executed.
+        """
+        return self._cycles == 0
 
-    def disassemble(self, start_address: int, stop_address: int) -> List[str]:
+    def disassemble(self, start_address: int, stop_address: int) -> Dict[str]:
         """
         Converts the desired chunk of program memory into human-readable code.
         Used for debugging.
         """
-        disassembled_memory: List[str] = []
+        disassembled_memory: Dict[int, str] = {}
         address: int = start_address
 
         # Memory decoding:
         while address <= stop_address:
+            # Cache line address:
+            line_address: int = address
+
             # Read instruction and get its readable name:
             opcode: int = self._read(address, True)
             instruction: str = f"${format(address, '04x')}: {self._lookup[opcode].name} "
             operand: int = 0
             address += 1
 
-            #  Get operands from desired locations and form the instruction:
+            # Get operands from desired locations and form the instruction:
             if self._lookup[opcode].address_mode == self._ACC:
                 instruction += "A"
 
@@ -391,7 +398,7 @@ class CPU:
                 address += 1
                 instruction += f"(${format(operand, '04x')}), Y"
 
-            disassembled_memory.append(instruction)
+            disassembled_memory[line_address] = instruction
 
         return disassembled_memory
 
@@ -521,8 +528,8 @@ class CPU:
         self.pc_reg += 1
 
         self._address = self._read(ptr)
-        self._address |= (self._read(ptr & 0xFF00) if (ptr & 0x00FF) == 0x00FF
-                          else self._read(ptr + 1)) << 8
+        self._address |= (self._read(ptr & 0xFF00) if (ptr & 0x00FF) == 0x00FF else
+                          self._read(ptr + 1)) << 8
         return 0
 
     def _IZX(self) -> int:
