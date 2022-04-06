@@ -1,7 +1,6 @@
-import itertools
-import os
 import pygame as pg
 
+from pathlib import Path
 from typing import Tuple, Dict
 from pygame.locals import *
 
@@ -10,14 +9,11 @@ from nes.cartridge import Cartridge
 from nes.cpu import CPU
 
 
-main_dir: str = os.path.split(os.path.abspath(__file__))[0]
-
-
 def load_font(file: str, size: int) -> pg.font.Font:
     """
     Loads a font, prepares it for use.
     """
-    file = os.path.join(main_dir, "data", "font", file)
+    file = Path(__file__).parent.parent.parent / "data" / "font" / file
     try:
         return pg.font.Font(file, size)
     except pg.error:
@@ -28,7 +24,7 @@ def load_image(file: str) -> pg.Surface:
     """
     Loads an image, prepares it for play.
     """
-    file = os.path.join(main_dir, "data", "img", file)
+    file = Path(__file__).parent.parent.parent / "data" / "img" / file
     try:
         return pg.image.load(file)
     except pg.error:
@@ -83,6 +79,8 @@ class NESEmulator:
 
     def __init__(self) -> None:
         pg.init()
+        pg.display.init()
+        print(pg.display.list_modes())
 
         self.running: bool = True
         self.debug_mode: bool = True
